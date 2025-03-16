@@ -1,0 +1,5 @@
+( === USER.FTH === )
+( REPLACE OR EXTEND THIS FILE TO ADD CUSTOM FUNCTIONALITY )
+
+\ for example, if running stock system files in user space:
+\ INCLUDE system.fth
