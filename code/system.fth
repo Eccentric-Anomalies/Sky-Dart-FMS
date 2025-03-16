@@ -7,31 +7,25 @@ CR
 \
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\ IMPORTANT: When executing in USER SPACE, comment out the following lines
+\\ IMPORTANT: COMMENT following line if running this code in USER SPACE
 
-\\ NOTE: Remove paths and copy sources to game root at run-time
-\\ NOTE: Test edit from within an enclosing repository
-\ leave the ability to erase the built-in code
 MARKER RESET-SYSTEM
 
-INCLUDE spacecraft/computer/forth_sources/iomap.fth
-INCLUDE spacecraft/computer/forth_sources/clock.fth
-INCLUDE spacecraft/computer/forth_sources/fms.fth
-INCLUDE spacecraft/computer/forth_sources/buttons.fth
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\ IMPORTANT: When executing in USER SPACE, UNCOMMENT the following line
+\\ to erase the stock operating system code so it can be replaced
+
+\ RESET-SYSTEM 
+
+INCLUDE iomap.fth
+INCLUDE clock.fth
+INCLUDE fms.fth
+INCLUDE buttons.fth
+
 
 \ load any user code present
 : LDUSER S" user.fth" INCLUDED ;
 LDUSER
 
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\ IMPORTANT: When executing in USER SPACE, un-comment the following lines
-
-\ RESET-SYSTEM         \ only if fully replacing stock system software
-
-\ INCLUDE iomap.fth
-\ INCLUDE clock.fth
-\ INCLUDE fms.fth
-\ INCLUDE buttons.fth
-\ INCLUDE your own forth sources
-
-PAGE        ( clear the screen )
+\ clear the screen
+PAGE
