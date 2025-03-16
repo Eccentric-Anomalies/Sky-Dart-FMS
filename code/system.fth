@@ -9,6 +9,7 @@ CR
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \\ IMPORTANT: When executing in USER SPACE, comment out the following lines
 
+\\ NOTE: Remove paths and copy sources to game root at run-time
 \ leave the ability to erase the built-in code
 MARKER RESET-SYSTEM
 
