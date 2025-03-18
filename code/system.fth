@@ -20,6 +20,7 @@ MARKER RESET-SYSTEM
 INCLUDE iomap.fth
 INCLUDE clock.fth
 INCLUDE fms.fth
+INCLUDE task.fth
 INCLUDE buttons.fth
 
 
