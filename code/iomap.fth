@@ -20,9 +20,10 @@ HEX
     100 CONSTANT MASK-FMS-KEYPAD
     200 CONSTANT MASK-FMS-LEFT-FN
     400 CONSTANT MASK-FMS-RIGHT-FN
-    \ FMS KEYPAD AND FUNCTION KEY VALUES
-    \ FUNCTION VALUES WILL BE 0-5 TOP TO BOTTOM, IN MASK-FMS-KEY BYTE
-    \ KEY VALUES WILL BE 0-9 FOR NUMERIC KEYS. OTHERS FOLLOW:
+    \ Number of function key rows (numbered 0-5)
+    6 CONSTANT VALUE-FMS-FN-ROWS
+    \ Function key values 0-5 (top to bottom), appear in MASK-FMS-KEY byte
+    \ Numeric keypad values will be 0-9 for numeric, otherwise:
     0A CONSTANT VALUE-FMS-DP       \ DECIMAL POINT
     0B CONSTANT VALUE-FMS-PM       \ PLUS / MINUS
     0C CONSTANT VALUE-FMS-UP       \ UP ARROW

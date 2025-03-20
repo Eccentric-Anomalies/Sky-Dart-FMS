@@ -17,9 +17,12 @@ MARKER RESET-SYSTEM
 
 \ RESET-SYSTEM 
 
+1 CELLS CONSTANT SYSTEM-CELL-SIZE
+
 INCLUDE iomap.fth
 INCLUDE clock.fth
 INCLUDE fms.fth
+INCLUDE menu.fth
 INCLUDE task.fth
 INCLUDE buttons.fth
 

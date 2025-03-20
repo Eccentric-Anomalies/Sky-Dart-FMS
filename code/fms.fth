@@ -1,4 +1,4 @@
-( === FMS.FTH === )
+\ === FMS.FTH ===
 
 DECIMAL
 
@@ -9,7 +9,6 @@ DECIMAL
 24  CONSTANT FMS-COLUMNS
 14  CONSTANT FMS-ROWS
 \ FUNCTION KEY TEXT 
-6   CONSTANT FMS-MAX-TASK-NAME-LENGTH
 VARIABLE DP-DISPLAYED
 VARIABLE PM-STATE
 VARIABLE NUMERIC-CURRENT-LENGTH
@@ -77,11 +76,6 @@ CREATE NUMERIC-BUFFER NUMERIC-AVAILABLE-LENGTH ALLOT
 \ and right on the right.
 \
 : FMS-SET-FKEY-TEXT             (  c-addr u col row -- )
-    \ erase the slot first
-    2DUP                        ( c-addr u col row col row )
-    FMS-MAX-TASK-NAME-LENGTH    ( c-addr u col row col row l )
-    ROT ROT                     ( c-addr u col row l col row )
-    FMS-CLEAR-FKEY-TEXT         ( c-addr u col row )
     FMS-GET-FKEY-XY             ( c-addr u x y )
     AT-XY                       ( c-addr u )
     TYPE                        (  )
@@ -193,7 +187,7 @@ CREATE NUMERIC-BUFFER NUMERIC-AVAILABLE-LENGTH ALLOT
     PARK-CURSOR
 ;
 
-\ FMS one-time initialization code (follows any boot activity)
+\ FMS one-time initialization code (follows any boot activity)  FIXME probably not needed long-term
 \
 : HANDLE-ONE-SHOT                       ( -- )
     \ erase the ok message
@@ -218,10 +212,13 @@ CREATE NUMERIC-BUFFER NUMERIC-AVAILABLE-LENGTH ALLOT
 
 
 \ Start the FMS one time initialization timer
-TID-FMS-ONE-SHOT 100 P-TIMER HANDLE-ONE-SHOT
+\ TID-FMS-ONE-SHOT 100 P-TIMER HANDLE-ONE-SHOT
+
+RESET-NUMERIC-BUFFER
+
 
 \ Listen for all button press events on the FMS
-PORT-BUTTON-FMS 0 LISTEN HANDLE-FMS-button
+PORT-BUTTON-FMS 0 LISTEN HANDLE-FMS-BUTTON
 
 \ Start a service timer for the FMS task manager
 TID-FMS-TASK 500 P-TIMER FMS-TASK-MANAGER
