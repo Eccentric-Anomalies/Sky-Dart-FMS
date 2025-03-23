@@ -4,37 +4,37 @@ DECIMAL
 \ === PERIODIC TIMER HANDLERS ===
 \ MSEC TICK COUNT
 \ TICK STORAGE
-2VARIABLE MSEC-COUNT
-50 CONSTANT MSEC-INTERVAL
+2VARIABLE msec_count
+50 CONSTANT MSEC_INTERVAL
+\ SECONDS STORAGE
+VARIABLE sec_count
 
 \ TICK HANDLER
 \
-: HANDLE-TICK-MSEC  ( -- )
+: handle_tick_msec  ( -- )
     \ fetch the dword msec count, the msec period, 
     \ then add and update the count
-    MSEC-COUNT 2@   ( c1 c2 )
-    MSEC-INTERVAL   ( c1 c2 p )
+    msec_count 2@   ( c1 c2 )
+    MSEC_INTERVAL   ( c1 c2 p )
     M+              ( c1 c2 )
-    MSEC-COUNT 2!   (  )
+    msec_count 2!   (  )
 ;
 
 \ SECONDS COMPUTATION AND DISPLAY
 
-\ SECONDS STORAGE
-VARIABLE SEC-COUNT
 
 \ Compute the running count of seconds
 \
-: COMPUTE-SECONDS   ( -- )
+: compute_seconds   ( -- )
     \ fetch the dword msec count, divide by msec per sec and store
-    MSEC-COUNT 2@   ( c1 c2 )
+    msec_count 2@   ( c1 c2 )
     1000 M/         ( s )
-    SEC-COUNT !     (  )
+    sec_count !     (  )
 ;
 
 \ Generate formatted clock text from total seconds
 \
-: FORMATTED-CLOCK-TEXT ( u -- c-addr u )
+: formatted_clock_text ( u -- c-addr u )
     \ generate seconds, minutes, then hours
     60 /MOD         ( s q )
     60 /MOD         ( s m h )
@@ -48,24 +48,24 @@ VARIABLE SEC-COUNT
 
 \ Display formatted time on the terminal screen
 \
-: DISPLAY-TIME      ( -- )
+: display_time      ( -- )
     \ save cur, move to 7,1, retrieve seconds, format and display, restore cur
     PUSH-XY                     (  )
     7 1 AT-XY                   (  )
-    SEC-COUNT @                 ( u )
-    FORMATTED-CLOCK-TEXT TYPE   (  )
+    sec_count @                 ( u )
+    formatted_clock_text TYPE   (  )
     POP-XY                      (  )
 ;
 
 \ Handle ticks on the order of one second period
 \
-: HANDLE-TICK-SEC   ( -- )
-    COMPUTE-SECONDS
-    DISPLAY-TIME
+: handle_tick_sec   ( -- )
+    compute_seconds
+    display_time
 ;
 
 \ === PERIODIC TIMER STARTS ===
-\ Create periodic tick at MSEC-INTERVAL rate
-TID-MSEC-TICK MSEC-INTERVAL P-TIMER HANDLE-TICK-MSEC
+\ Create periodic tick at MSEC_INTERVAL rate
+TID_MSEC_TICK MSEC_INTERVAL P-TIMER handle_tick_msec
 \ Create periodic 1/2 second tick
-TID-1SEC-TICK 500 P-TIMER HANDLE-TICK-SEC
+TID_1SEC_TICK 500 P-TIMER handle_tick_sec

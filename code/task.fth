@@ -4,43 +4,32 @@
 
 \ Code for testing menu display
 
-MENU-CREATE MY-TEST-MENU
-MY-TEST-MENU MENU-CLEAR
+menu_create my_test_menu
+my_test_menu menu_clear
 
-: TEST-XT
+: test_xt
     6 6 AT-XY
     S" HI!" TYPE
 ;
 
-: TEST-MENU-CREATE
-    ['] TEST-XT S" TEXT" S" LABEL" MY-TEST-MENU 0 2 MENU-ADD-OPTION
+: test_menu_create
+    ['] test_xt S" TEXT" S" item label" my_test_menu 0 2 menu_add_option
+    ['] test_xt S" TEXT2" S" item label 2" my_test_menu 0 3 menu_add_option
 ;
 
 \ Build the menu
-TEST-MENU-CREATE
+test_menu_create
 
 
-: TASK-INIT                         ( -- )
-    TID-TASK-INIT P-STOP            (  )
+: task_init                         ( -- )
+    TID_TASK_INIT P-STOP            (  )
     \ erase the ok message
-    2 1 1 ERASE-DISPLAY-LINE        (  )
+    2 1 1 erase_display_line        (  )
     \ start managing the FMS
-    \ MY-TEST-MENU  MENU-SHOW         (  )
-    MY-TEST-MENU 0 0 MENU-ITEM-SHOW
-    MY-TEST-MENU 0 1 MENU-ITEM-SHOW
-    MY-TEST-MENU 0 2 MENU-ITEM-SHOW
-    MY-TEST-MENU 0 3 MENU-ITEM-SHOW
-    MY-TEST-MENU 0 4 MENU-ITEM-SHOW
-    MY-TEST-MENU 0 5 MENU-ITEM-SHOW
-    MY-TEST-MENU 1 0 MENU-ITEM-SHOW
-    MY-TEST-MENU 1 1 MENU-ITEM-SHOW
-    MY-TEST-MENU 1 2 MENU-ITEM-SHOW
-    MY-TEST-MENU 1 3 MENU-ITEM-SHOW
-    MY-TEST-MENU 1 4 MENU-ITEM-SHOW
-\    MY-TEST-MENU 1 5 MENU-ITEM-SHOW  garbage here
-    PARK-CURSOR
+    my_test_menu  menu_show         (  )
+    park_cursor
 ;
 
 
 \ Start the TASK one time initialization timer
-TID-TASK-INIT 100 P-TIMER TASK-INIT
+TID_TASK_INIT 100 P-TIMER task_init
