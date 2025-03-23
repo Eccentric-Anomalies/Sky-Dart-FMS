@@ -220,8 +220,10 @@ VARIABLE MENU-SCRATCH
 \ Display a complete menu on the screen
 \
 : MENU-SHOW                     ( m-addr -- )
-    PAGE                        ( m-addr )
-    2 0 DO                      (  )
-        6 0 DO                  
+    2 0 DO                      ( m-addr )
+        6 0 DO                  ( m-addr )
+            DUP                 ( m-addr m-addr )           
+            J I MENU-ITEM-SHOW  ( m-addr )
+        LOOP
     LOOP                        (  )
 ;
