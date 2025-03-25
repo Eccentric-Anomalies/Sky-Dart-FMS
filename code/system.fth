@@ -24,6 +24,10 @@ INCLUDE clock.fth
 INCLUDE fms.fth
 INCLUDE menu.fth
 INCLUDE task.fth
+\ UI tasks
+INCLUDE task_chron.fth
+INCLUDE task_main.fth
+\ Simple IO Processing
 INCLUDE buttons.fth
 
 

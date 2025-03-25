@@ -78,7 +78,7 @@ MENU_ITEM_QTY MENU_ITEM_STRUCT_SIZE * MENU_RETURN_SIZE + MENU_NAME_SIZE +
 VARIABLE menu_scratch
 
 
-\ Create a menu definition structure
+\ Create a menu definition structure - creates executable <name>
 \
 : menu_create                   ( <name> -- )
     CREATE                      (  )

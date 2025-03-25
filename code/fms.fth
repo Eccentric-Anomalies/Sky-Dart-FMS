@@ -12,12 +12,9 @@ DECIMAL
 VARIABLE dp_displayed
 VARIABLE pm_state
 VARIABLE numeric_current_length
-VARIABLE task_current_xt        \ CURRENT TASK XT - ZERO IF NONE
 \ RAM BUFFER FOR BUILDING TEXT NUMERIC VALUE
 CREATE numeric_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
 
-\ Initialize the current task 
-0 task_current_xt !
 
 
 \ Park the cursor position in the lower-right screen corner
@@ -203,19 +200,7 @@ CREATE numeric_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
 ;
 
 
-\ FMS task poll handler executes poll for current task, if any
-\
-: fms_task_manager                      ( -- )
-    task_current_xt @ 0<> IF            (  )
-        task_current_xt @ EXECUTE       (  )
-    THEN
-;
-
-
 reset_numeric_buffer
 
 \ Listen for all button press events on the FMS
 PORT_BUTTON_FMS 0 LISTEN handle_fms_button
-
-\ Start a service timer for the FMS task manager
-TID_FMS_TASK 500 P-TIMER fms_task_manager
