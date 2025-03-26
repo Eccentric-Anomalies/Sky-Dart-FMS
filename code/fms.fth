@@ -107,7 +107,7 @@ CREATE numeric_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
 
 \ Process keypresses on the FMS numeric keypad
 \
-: handle_fms_keypad                 ( raw-event -- )
+: fms_handle_keypad                 ( raw-event -- )
     MASK_FMS_KEY AND                ( u )
     DUP                             ( u u )
     FMS_CLR = IF              ( [IF 1] u )
@@ -170,37 +170,7 @@ CREATE numeric_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
     MASK_FMS_KEY AND                        ( col row )
 ;
 
-
-\ Given the raw FMS function key event, transfer the numeric scratchpad
-\ to the slot next to the function key.
 \
-: handle_fms_function                   ( raw-event -- )
-    numeric_buffer numeric_current_length @ ( raw-event c-addr u )
-    ROT                                 ( c-addr u raw-event )
-    fms_key_event_to_col_row            ( c-addr u col row )
-    2DUP                                ( c-addr u col row col row )
-    NUMERIC_AVAILABLE_LENGTH            ( c-addr u col row col row length )
-    ROT ROT                             ( c-addr u col row length col row )
-    fms_clear_fkey_text                 ( c-addr u col row )
-    fms_set_fkey_text
-;
-
-
-\ FMS button handler
 \
-: handle_fms_button                     ( raw-event -- )
-    DUP                                 ( raw-event raw-event )
-    MASK_FMS_KEYGROUP AND               ( raw-event key-group )
-    MASK_FMS_KEYPAD <> IF               ( raw-event)
-        handle_fms_function             (  )
-    ELSE
-        handle_fms_keypad               (  )
-    THEN
-    park_cursor
-;
-
-
 reset_numeric_buffer
 
-\ Listen for all button press events on the FMS
-PORT_BUTTON_FMS 0 LISTEN handle_fms_button

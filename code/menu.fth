@@ -55,6 +55,13 @@ MENU_ITEM_QTY MENU_ITEM_STRUCT_SIZE * CONSTANT MENU_STRUCT_SIZE
 \ Variables
 2VARIABLE menu_col_row_scratch
 VARIABLE menu_scratch
+\ currently displayed menu
+VARIABLE menu_current
+\ col and row of last fkey pressed
+2VARIABLE menu_fkey_col_row
+
+\ initialize current menu to null
+0 menu_current !
 
 
 \ Create a menu definition structure - creates executable <name>
@@ -92,7 +99,7 @@ VARIABLE menu_scratch
 
 \ Get a menu item xt (col row are function key coordinates)
 \
-: menu_get_Item_xt              ( addr col row -- xt)
+: menu_get_item_xt              ( addr col row -- xt)
     menu_get_item_xt_addr       ( addr )
     @                           ( xt )
 ;
@@ -186,6 +193,7 @@ VARIABLE menu_scratch
 \ Display a complete menu on the screen
 \
 : menu_show                             ( m-addr -- )
+    DUP menu_current !                  ( m-addr )
     2 0 DO                              ( m-addr )
         6 0 DO                          ( m-addr )
             DUP                         ( m-addr m-addr )
@@ -196,3 +204,37 @@ VARIABLE menu_scratch
     LOOP                                ( m-addr )
     DROP                                (  )
 ;
+
+
+
+\ Given the raw FMS function key event, execute the corresponding
+\ execution token, if any
+\
+: handle_fms_function                   ( raw-event -- )
+    menu_current @ SWAP                 ( m-addr raw-event )
+    fms_key_event_to_col_row            ( m-addr col row )
+    2DUP menu_fkey_col_row 2!           ( m-addr col row )
+    menu_get_item_xt                    ( xt )
+    DUP 0<> IF                          ( xt )
+        EXECUTE                         (  )
+    ELSE                                ( xt )
+        DROP                            (  )
+    THEN
+;
+
+
+\ FMS button handler
+\
+: menu_handle_button                     ( raw-event -- )
+    DUP                                 ( raw-event raw-event )
+    MASK_FMS_KEYGROUP AND               ( raw-event key-group )
+    MASK_FMS_KEYPAD <> IF               ( raw-event)
+        handle_fms_function             (  )
+    ELSE
+        fms_handle_keypad               (  )
+    THEN
+    park_cursor
+;
+
+\ Listen for all button press events on the FMS
+PORT_BUTTON_FMS 0 LISTEN menu_handle_button

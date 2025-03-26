@@ -34,6 +34,3 @@ INCLUDE buttons.fth
 \ load any user code present
 : LDUSER S" user.fth" INCLUDED ;
 LDUSER
-
-\ clear the screen
-\ PAGE
