@@ -24,7 +24,7 @@ INCLUDE clock.fth
 INCLUDE fms.fth
 INCLUDE menu.fth
 INCLUDE task.fth
-\ UI tasks
+\ UI tasks (order is IMPORTANT!)
 INCLUDE task_chron.fth
 INCLUDE task_main.fth
 \ Simple IO Processing
@@ -36,4 +36,4 @@ INCLUDE buttons.fth
 LDUSER
 
 \ clear the screen
-PAGE
+\ PAGE

@@ -14,7 +14,7 @@
 SYSTEM_CELL_SIZE 3 * CONSTANT TASK_STRUCT_SIZE
 0 CONSTANT TASK_INIT
 SYSTEM_CELL_SIZE CONSTANT TASK_POLL
-TASK_POLL SYSTEM_CELL_SIZE + CONSTANT TASK_PERIOD
+TASK_POLL SYSTEM_CELL_SIZE + CONSTANT TASK_ORIG
 
 \ Definitions and tools for defining UI tasks on the FMS
 VARIABLE task_current_xt        \ current task poll xt
@@ -33,21 +33,20 @@ VARIABLE task_current_xt        \ current task poll xt
 
 \ Stop task polling and call the task init
 \
-: task_init 		( init-xt -- )
+: task_init                         ( init-xt -- )
     task_current_xt @ 0<> IF        ( init-xt )
-        TID_TASK_POLL P-STOP        ( init-xt )
-        0 task_current_xt !         (  )
+        0 task_current_xt !         ( init-xt )
     THEN
-	execute                         (  )
+    EXECUTE                         (  )
 ; 
 
 \ Create a task definition - will create an executable <name>
-\ <name> points to three cell block: init-xt, poll-xt, period-msec
+\ <name> points to three cell block: init-xt, poll-xt, orig-task
 \
-: task_create                   ( <name> period-msec poll-xt init-xt -- )
-    CREATE                      ( period-msec poll-xt init-xt )
-    TASK_STRUCT_SIZE ALLOT      ( period-msec poll-xt init-xt )
-    , , ,                       (  )
+: task_create                   ( <name> poll-xt init-xt -- )
+    CREATE                      ( poll-xt init-xt )
+    , ,                         (  )
+    0 ,                         (  )
 ;
 
 \ Get task init-xt
@@ -62,20 +61,28 @@ VARIABLE task_current_xt        \ current task poll xt
     TASK_POLL + @               ( xt )
 ;
 
-\ Get task poll period
+\ Set task orig-addr
 \
-: task_get_period               ( task-addr -- period )
-    TASK_PERIOD + @             ( period )
+: task_set_orig                 ( orig-addr task-addr -- )
+    TASK_ORIG + !               (  )
+;
+
+\ Get task orig-addr
+\
+: task_get_orig                 ( task-addr -- orig-addr )
+    TASK_ORIG + @
 ;
 
 \ Set the task polling xt and begin polling
+\ arguments: origin task, new task
 \
-: task_start                    ( task-addr -- )
-    DUP task_get_init           ( task-addr init-xt )
-    task_init                   ( task-addr )
-    DUP task_get_poll           ( task-addr poll-xt )
-    task_current_xt !           ( task-addr )
-    task_get_period             ( period-msec )
-    TID_TASK_POLL SWAP          ( tid period-msec )
-    P-TIMER task_poll           (  )
+: task_start                    ( orig-addr task-addr -- )
+    DUP task_get_init           ( orig-addr task-addr init-xt )
+    task_init                   ( orig-addr task-addr )
+    DUP task_get_poll           ( orig-addr task-addr poll-xt )
+    task_current_xt !           ( orig-addr task-addr )
+    task_set_orig               (  )
 ;
+
+\ Start the poll timer
+TID_TASK_POLL 250 P-TIMER task_poll

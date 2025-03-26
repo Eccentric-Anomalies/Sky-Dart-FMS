@@ -9,18 +9,6 @@
 \ menu_clear    zeros out menu definition structure
 \ Usage: mymenuname menu_clear                      ( addr -- )
 \
-\ menu_set_return_xt   set the return XT member of a menu struct
-\ Usage: return-xt mymenuname menu_set_return_xt    ( xt addr -- )
-\ 
-\ menu_get_return_xt   retrieve the return XT member of the menu struct
-\ Usage: mymenuname menu_get_return_xt              ( addr -- xt )
-\
-\ menu_set_menu_name    set the display name of a menu
-\ Usage: c-addr u mymenuname menu_set_menu_name     ( c-addr u addr -- )
-\
-\ menu_get_menu_name    get the display name of a menu
-\ Usage: mymenuname menu_get_menu_name              ( addr -- c-addr u )
-\
 \ menu_set_item_xt set the XT for a specific function key position (col row)
 \ Usage: xt mymenuname col row menu_set_item_xt    ( xt addr col row -- )
 \
@@ -52,16 +40,8 @@
 SYSTEM_CELL_SIZE 5 * CONSTANT MENU_ITEM_STRUCT_SIZE
 \ Each menu has a menu item for each button
 FMS_FN_ROWS 2* CONSTANT MENU_ITEM_QTY          
-\ Each menu has a return XT
-SYSTEM_CELL_SIZE CONSTANT MENU_RETURN_SIZE
-\ Offset in menu struct for return XT
-0 CONSTANT MENU_RETURN_OFFSET
-\ Each menu has a name
-SYSTEM_CELL_SIZE 2* CONSTANT MENU_NAME_SIZE
-\ OFfset in menu struct for name
-MENU_RETURN_SIZE CONSTANT MENU_NAME_OFFSET
 \ Offset in menu struct for items
-MENU_NAME_OFFSET MENU_NAME_SIZE + CONSTANT MENU_ITEMS_OFFSET
+0 CONSTANT MENU_ITEMS_OFFSET
 \ Offset in an item for XT
 0 CONSTANT MENU_ITEM_XT_OFFSET
 \ Offset in an item for text
@@ -70,8 +50,7 @@ SYSTEM_CELL_SIZE CONSTANT MENU_ITEM_TEXT_OFFSET
 SYSTEM_CELL_SIZE 2* MENU_ITEM_TEXT_OFFSET + 
     CONSTANT MENU_ITEM_LABEL_OFFSET
 \ So we can define the overall structure size
-MENU_ITEM_QTY MENU_ITEM_STRUCT_SIZE * MENU_RETURN_SIZE + MENU_NAME_SIZE +
-    CONSTANT MENU_STRUCT_SIZE
+MENU_ITEM_QTY MENU_ITEM_STRUCT_SIZE * CONSTANT MENU_STRUCT_SIZE
 
 \ Variables
 2VARIABLE menu_col_row_scratch
@@ -92,30 +71,6 @@ VARIABLE menu_scratch
     FILL                        (  )
 ;
 
-\ Set the return XT in a menu definition struct
-\
-: menu_set_return_xt            ( xt addr -- )
-    MENU_RETURN_OFFSET +        ( xt addr )
-    !                           (  )
-;
-
-\ Get the return XT from a menu definition struct
-\
-: menu_get_return_xt            ( addr -- xt )
-    MENU_RETURN_OFFSET + @      ( xt )
-;
-
-\ Set the menu name for a menu
-\
-: menu_set_menu_name            ( c-addr u addr -- )
-    MENU_NAME_OFFSET + 2!       (  )
-;
-
-\ Get the menu name for a menu
-\
-: menu_get_menu_name            ( addr -- c-addr u )
-    MENU_NAME_OFFSET + 2@       ( c-addr u )
-;
 
 \ Utility for getting address of an item xt
 \
@@ -237,6 +192,7 @@ VARIABLE menu_scratch
             J I menu_item_text_show     ( m-addr )
             DUP                         ( m-addr m-addr )
             J I menu_item_label_show    ( m-addr )
-        LOOP
-    LOOP                                (  )
+        LOOP                            ( m-addr )
+    LOOP                                ( m-addr )
+    DROP                                (  )
 ;
