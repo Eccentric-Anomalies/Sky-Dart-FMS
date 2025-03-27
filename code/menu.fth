@@ -233,7 +233,7 @@ VARIABLE menu_current
     ELSE
         fms_handle_keypad               (  )
     THEN
-    park_cursor
+    fms_park_cursor
 ;
 
 \ Listen for all button press events on the FMS

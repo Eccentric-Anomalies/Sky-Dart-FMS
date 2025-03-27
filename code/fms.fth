@@ -4,7 +4,7 @@ DECIMAL
 
 \ NUMERIC BUFFER MANAGEMENT 
 10  CONSTANT NUMERIC_AVAILABLE_LENGTH
-1   CONSTANT NUMERIC_DISPLAY_X
+5   CONSTANT NUMERIC_DISPLAY_X
 14  CONSTANT NUMERIC_DISPLAY_Y
 24  CONSTANT FMS_COLUMNS
 14  CONSTANT FMS_ROWS
@@ -19,8 +19,9 @@ CREATE numeric_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
 
 \ Park the cursor position in the lower-right screen corner
 \ 
-: park_cursor                           ( -- )
-    FMS_COLUMNS FMS_ROWS AT-XY
+: fms_park_cursor                           ( -- )
+    NUMERIC_DISPLAY_X numeric_current_length @ +
+    NUMERIC_DISPLAY_Y AT-XY
 ;
 
 \ Display length blanks beginning at screen coordinates x, y
@@ -104,6 +105,13 @@ CREATE numeric_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
     erase_numeric_display       (  )
     ;
 
+\ Refresh the buffer display
+\
+: fms_refresh_buffer_display
+    erase_numeric_display
+    NUMERIC_DISPLAY_X NUMERIC_DISPLAY_Y AT-XY
+    numeric_buffer numeric_current_length @ TYPE
+;
 
 \ Process keypresses on the FMS numeric keypad
 \
@@ -153,9 +161,7 @@ CREATE numeric_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
         THEN                        ( [THEN 4] )
     THEN                            ( [THEN 2] )
     THEN                            ( [THEN 1] )
-    erase_numeric_display
-    NUMERIC_DISPLAY_X NUMERIC_DISPLAY_Y AT-XY
-    numeric_buffer numeric_current_length @ TYPE
+    fms_refresh_buffer_display
 ;
 
 
