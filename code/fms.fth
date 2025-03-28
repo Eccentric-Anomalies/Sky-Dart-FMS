@@ -9,18 +9,24 @@ DECIMAL
 24  CONSTANT FMS_COLUMNS
 14  CONSTANT FMS_ROWS
 \ FUNCTION KEY TEXT 
-VARIABLE dp_displayed
-VARIABLE pm_state
-VARIABLE numeric_current_length
+VARIABLE fms_dp_displayed
+VARIABLE fms_pm_state
+VARIABLE fms_num_curr_length
 \ RAM BUFFER FOR BUILDING TEXT NUMERIC VALUE
-CREATE numeric_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
+CREATE fms_num_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
+\ Keep track of whole and frac parts of number
+VARIABLE fms_whole
+VARIABLE fms_frac
 
+\ Initialize variables
+fms_num_buffer fms_whole !
+0 fms_frac !
 
 
 \ Park the cursor position in the lower-right screen corner
 \ 
 : fms_park_cursor                           ( -- )
-    NUMERIC_DISPLAY_X numeric_current_length @ +
+    NUMERIC_DISPLAY_X fms_num_curr_length @ +
     NUMERIC_DISPLAY_Y AT-XY
 ;
 
@@ -96,13 +102,14 @@ CREATE numeric_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
 
 \ Erase and initialize the numeric scratchpad area at the screen bottom
 \
-: reset_numeric_buffer          ( -- )
-    1 numeric_current_length !  (  )
-    FALSE dp_displayed !        (  )
-    FALSE pm_state !            (  )
+: reset_fms_num_buffer          ( -- )
+    1 fms_num_curr_length !  (  )
+    FALSE fms_dp_displayed !        (  )
+    FALSE fms_pm_state !            (  )
     \ Save a blank character at the start as a sign placeholder
-    BL numeric_buffer C!        (  )
+    BL fms_num_buffer C!        (  )
     erase_numeric_display       (  )
+    0 fms_frac !                (  )
     ;
 
 \ Refresh the buffer display
@@ -110,7 +117,48 @@ CREATE numeric_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
 : fms_refresh_buffer_display
     erase_numeric_display
     NUMERIC_DISPLAY_X NUMERIC_DISPLAY_Y AT-XY
-    numeric_buffer numeric_current_length @ TYPE
+    fms_num_buffer fms_num_curr_length @ TYPE
+;
+
+\ Get numeric value of whole part of buffer (signed)
+: fms_get_whole_value               ( -- x )
+    \ compute the number of digits, considering dp
+    fms_whole @ 1 +                 ( addr )
+    0                               ( addr 0 )
+    fms_frac @ 0= IF                ( addr 0 )
+        fms_num_curr_length @ 0     ( addr 0 l 0 )
+    ELSE                            ( addr 0 )
+        OVER                        ( addr 0 addr )
+        fms_frac @ 1 - SWAP         ( addr 0 end-addr addr )
+        - 0                         ( addr 0 l 0 )
+    THEN                            ( addr 0 l 0 )
+    ?DO                             ( addr 0 )
+        10 *                        ( addr n*10 )
+        SWAP DUP                    ( n*10 addr addr )
+        @ [CHAR] 0 -                ( n*10 addr digit )
+        ROT +                       ( addr n )
+        SWAP                        ( n addr )
+        1 +                         ( n addr+1 )
+        SWAP                        ( addr n )
+    LOOP                            
+    SWAP DROP                       ( n )
+    \ Check for negative
+    fms_whole @ [CHAR] -            ( n c '-' )
+    = IF                            ( n )
+        negative                    ( x )
+    THEN                            ( x )
+;
+
+
+
+\ Get integer value of the buffer multiplied by 10^x
+\
+: fms_get_buffer_value              ( x -- i )
+    fms_get_whole_value             ( x n )
+    SWAP 0 SWAP                     ( n 0 x )
+    ?DO                             ( n )
+        10 *                        ( n )
+    LOOP
 ;
 
 \ Process keypresses on the FMS numeric keypad
@@ -120,37 +168,39 @@ CREATE numeric_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
     DUP                             ( u u )
     FMS_CLR = IF              ( [IF 1] u )
         DROP                        (  )
-        reset_numeric_buffer        (  )
+        reset_fms_num_buffer        (  )
     \ check for +/- key
     ELSE DUP FMS_PM = IF      ( [ELSE 1] [IF 2] u )
         DROP                        (  )
-        pm_state @ IF               ( [IF 3] )
+        fms_pm_state @ IF               ( [IF 3] )
             BL                      ( u )
         ELSE                        ( [ELSE 3] u )
             [CHAR] -                ( u )
         THEN                        ( [THEN 3] u )
         \ store the + or bl in the first position
-        numeric_buffer C!           (  )
+        fms_num_buffer C!           (  )
         \ toggle the + or - state variable
-        pm_state @ NOT pm_state !   (  )
+        fms_pm_state @ NOT fms_pm_state !   (  )
     ELSE                            ( [ELSE 2] u )
-        numeric_current_length @    ( u u )
+        fms_num_curr_length @    ( u u )
         \ check to see if there is room for more
         NUMERIC_AVAILABLE_LENGTH <> IF  ( [IF 4] u )
             DUP FMS_DP =      ( u f )
-            dp_displayed @ NOT AND IF   ( [IF 5] u )
+            fms_dp_displayed @ NOT AND IF   ( [IF 5] u )
                 DROP                (  )
                 [CHAR] .            ( u )
-                numeric_buffer numeric_current_length @ + C!    (  )
-                1 numeric_current_length +!                     (  )
+                fms_num_buffer fms_num_curr_length @ + C!    (  )
+                1 fms_num_curr_length +!                     (  )
+                \ set the position of the frac
+                fms_num_curr_length @ fms_frac !
                 \ set the new dp displayed state
-                TRUE dp_displayed ! (  )
+                TRUE fms_dp_displayed ! (  )
             \ ignore keycodes > 9
             ELSE DUP 10 < IF        ( [ELSE 5] [IF 6] u )
                 \ add the keycode to ascii 0
                 [CHAR] 0 +          ( u )
-                numeric_buffer numeric_current_length @ + C!    (  )
-                1 numeric_current_length +!                     (  )
+                fms_num_buffer fms_num_curr_length @ + C!    (  )
+                1 fms_num_curr_length +!                     (  )
             ELSE                    ( [ELSE 6] )
                 DROP                (  )
             THEN                    ( [THEN 6] )
@@ -178,5 +228,5 @@ CREATE numeric_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
 
 \
 \
-reset_numeric_buffer
+reset_fms_num_buffer
 
