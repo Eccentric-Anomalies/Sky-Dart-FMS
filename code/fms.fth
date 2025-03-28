@@ -126,7 +126,7 @@ fms_num_buffer fms_whole !
     fms_whole @ 1 +                 ( addr )
     0                               ( addr 0 )
     fms_frac @ 0= IF                ( addr 0 )
-        fms_num_curr_length @ 0     ( addr 0 l 0 )
+        fms_num_curr_length @ 1 - 0 ( addr 0 l 0 )
     ELSE                            ( addr 0 )
         OVER                        ( addr 0 addr )
         fms_frac @ 1 - SWAP         ( addr 0 end-addr addr )
@@ -135,7 +135,7 @@ fms_num_buffer fms_whole !
     ?DO                             ( addr 0 )
         10 *                        ( addr n*10 )
         SWAP DUP                    ( n*10 addr addr )
-        @ [CHAR] 0 -                ( n*10 addr digit )
+        C@ [CHAR] 0 -               ( n*10 addr digit )
         ROT +                       ( addr n )
         SWAP                        ( n addr )
         1 +                         ( n addr+1 )
@@ -145,20 +145,54 @@ fms_num_buffer fms_whole !
     \ Check for negative
     fms_whole @ [CHAR] -            ( n c '-' )
     = IF                            ( n )
-        negative                    ( x )
+        NEGATE                      ( x )
     THEN                            ( x )
 ;
 
-
+\ Get numeric value of fractional part, multiplied by 1 billion
+: fms_get_frac_e9                   ( -- x )
+    fms_frac @ 0<> IF               
+        \ compute the number of digits
+        0                               ( r )
+        fms_num_curr_length @           ( r loa )
+        fms_frac @                      ( r loa faddr )
+        fms_whole @ -                   ( r loa faddr-offset )
+        -                               ( r l )
+        100000000 SWAP 0                ( r m l 0 )
+        ?DO                             ( r m )
+            fms_frac @ I +              ( r m d-addr )
+            C@ [CHAR] 0 -               ( r m d )
+            OVER                        ( r m d m )
+            *                           ( r m p )
+            ROT                         ( m p r )
+            +                           ( m r )
+            SWAP                        ( r m )
+            10 /                        ( r m-new )        
+        LOOP                            ( r m )
+        DROP                            ( r )
+    ELSE                                ( r )
+        0                               ( r )
+    THEN                                ( r )
+;
 
 \ Get integer value of the buffer multiplied by 10^x
 \
 : fms_get_buffer_value              ( x -- i )
-    fms_get_whole_value             ( x n )
-    SWAP 0 SWAP                     ( n 0 x )
-    ?DO                             ( n )
-        10 *                        ( n )
-    LOOP
+    DUP                             ( x x )
+    fms_get_whole_value             ( x x n )
+    SWAP 0                          ( x n x 0 )
+    ?DO                             ( x n )
+        10 *                        ( x n )
+    LOOP                            ( x n )
+    \ add fractional part
+    SWAP                            ( n x )
+    9 SWAP -                        ( n xf )
+    fms_get_frac_e9                 ( n xf f )
+    SWAP 0                          ( n f xf 0 )
+    ?DO                             ( n f )
+        10 /                        ( n f/10 )
+    LOOP                            ( n f )
+    +                               ( n )
 ;
 
 \ Process keypresses on the FMS numeric keypad
@@ -192,7 +226,7 @@ fms_num_buffer fms_whole !
                 fms_num_buffer fms_num_curr_length @ + C!    (  )
                 1 fms_num_curr_length +!                     (  )
                 \ set the position of the frac
-                fms_num_curr_length @ fms_frac !
+                fms_num_buffer fms_num_curr_length @ + fms_frac !
                 \ set the new dp displayed state
                 TRUE fms_dp_displayed ! (  )
             \ ignore keycodes > 9

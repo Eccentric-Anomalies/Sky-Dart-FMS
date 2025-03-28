@@ -32,6 +32,8 @@ task_main_menu_create
 : task_main_init                ( -- )
     PAGE
     task_main_menu menu_show    (  )
+    version_title               (  )
+    version_number              (  )
 ;
 
 \ (7) Create the task definition: task_main

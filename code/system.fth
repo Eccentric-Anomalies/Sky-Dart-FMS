@@ -19,6 +19,7 @@ MARKER reset_system
 
 1 CELLS CONSTANT SYSTEM_CELL_SIZE
 
+INCLUDE version.fth
 INCLUDE iomap.fth
 INCLUDE clock.fth
 INCLUDE fms.fth

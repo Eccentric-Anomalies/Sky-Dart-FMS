@@ -62,6 +62,7 @@ DECIMAL
     6 10 AT-XY
     t_chron_msec_timer @ 100 /  ( s*10 )
     0 <# # [CHAR] . HOLD # # # # #> TYPE
+    fms_park_cursor             (  )
 ;
 
 \ Display the mission time fixed text
@@ -110,7 +111,6 @@ DECIMAL
     THEN                            (  )
     t_chron_active @ IF             (  )
         t_chron_display_timer       (  )
-        fms_park_cursor             (  )
     THEN
 ;
 
@@ -135,8 +135,13 @@ DECIMAL
 ;
 
 \ set function key
-: t_chron_set
-    \ do something to set the stopwatch
+: t_chron_set                   ( -- )
+    \ get scratchpad value * 1000
+    3                           ( n )
+    fms_get_buffer_value        ( x )
+    100 / 100 *                 ( x )  \ clear all but 1/10 s
+    t_chron_msec_timer !        (  )
+    t_chron_display_timer       (  )
 ;
 
 \ reset function key
