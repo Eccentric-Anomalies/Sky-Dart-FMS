@@ -68,15 +68,15 @@ DECIMAL
 \ Display the mission time fixed text
 \
 : t_chron_display_fixed_text ( -- )
-    6 2 AT-XY   S" MISSION TIME"    TYPE
-    6 3 AT-XY   S" ------------"    TYPE
-    12 4 AT-XY        S" HOUR"      TYPE
-    12 5 AT-XY        S" MIN"       TYPE
-    12 6 AT-XY        S" SEC"       TYPE
+    6 2 AT-XY   ." MISSION TIME"
+    6 3 AT-XY   ." ------------"
+    12 4 AT-XY        ." HOUR"
+    12 5 AT-XY        ." MIN"
+    12 6 AT-XY        ." SEC"
 
-    8 8 AT-XY     S" TIMER"         TYPE
-    6 9 AT-XY   S" ----------"      TYPE
-    13 10 AT-XY        S" SEC"      TYPE
+    8 8 AT-XY     ." TIMER"
+    6 9 AT-XY   ." ----------"
+    13 10 AT-XY        ." SEC"
 ;
 
 \ Stopwatch is counting up or down

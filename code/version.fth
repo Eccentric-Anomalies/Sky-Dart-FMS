@@ -4,9 +4,9 @@
 \
 
 : version_title
-    6 1 AT-XY S" SKY-DART FMS" TYPE
+    6 1 AT-XY ." SKY-DART FMS"
 ;
 
 : version_number
-    9 2 AT-XY S" v1.0.0" TYPE
+    9 2 AT-XY ." v1.0.0"
 ;
