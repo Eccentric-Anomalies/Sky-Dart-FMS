@@ -18,6 +18,19 @@ DECIMAL
     clock_msec_count 2!   (  )
 ;
 
+\ RTC Tick Handler - initializes FMS clock
+\
+: handle_rtc_tick           ( sec -- )
+    S>D                     ( sec )
+    1000 *                  ( msec )
+    clock_msec_count 2!     (  )
+    PORT_RTC_SECONDS UNLISTEN
+;
+
+
+\ === LISTEN FOR RTC TICK ===
+PORT_RTC_SECONDS 0 LISTEN handle_rtc_tick
+
 
 \ === PERIODIC TIMER STARTS ===
 \ Create periodic tick at MSEC_INTERVAL rate
