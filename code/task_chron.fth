@@ -3,6 +3,21 @@
 \ Definition of chronometer/stopwatch UI task
 \
 
+\
+\       MISSION TIME
+\       ------------
+\       00000 HOUR
+\          00 MIN
+\          00 SEC
+\                       SET
+\         TIMER
+\       ----------    RESET
+\       0000.0 SEC
+\                     UP/ST
+\
+\  <RETURN            DN/ST
+\
+
 \ Constants
 100 CONSTANT T_CHRON_TIMER_MSEC
 
