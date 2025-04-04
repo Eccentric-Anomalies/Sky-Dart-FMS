@@ -31,9 +31,14 @@ task_main_menu menu_clear
     task_main_addr @ task_chron task_start
 ;
 
+: task_main_padsvc
+    task_main_addr @ task_padsvc task_start
+;
+
 \ (3) Define the menu
 : task_main_menu_create
-    ['] task_main_chron S" >CHRON" 0 0 task_main_menu 0 0 menu_add_option
+    ['] task_main_chron S" >CHRON" 0 0 task_main_menu 0 1 menu_add_option
+    ['] task_main_padsvc S" >PADSVC" 0 0 task_main_menu 0 2 menu_add_option
 ;
 
 \ (4) Build the menu

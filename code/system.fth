@@ -25,8 +25,11 @@ INCLUDE clock.fth
 INCLUDE fms.fth
 INCLUDE menu.fth
 INCLUDE task.fth
-\ UI tasks (order is IMPORTANT!)
+\ UI/menu tasks below: menu leaves first, root last
+\ Levels seperated by ----
 INCLUDE task_chron.fth
+INCLUDE task_padsvc.fth
+\ ----
 INCLUDE task_main.fth
 \ Simple IO Processing
 INCLUDE buttons.fth
