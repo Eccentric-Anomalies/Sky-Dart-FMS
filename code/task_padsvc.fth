@@ -4,9 +4,9 @@
 \
 
 \
-\  xxx +90.00 +180.00 9999M
-\  TO> yyy 359.9D 001.00 KM
-\  TO> zzz 359.9D 9999.0 KM
+\  xxx -90.00°-180.00°9999M
+\  TO> yyy 359.9° 001.00 KM
+\  TO> zzz 359.9° 9999.0 KM
 \  FOOD   10.0  10.0   LIOH
 \         KG    KG  
 \  WATER  10.0  10.0   PROP
@@ -29,6 +29,13 @@ VARIABLE t_padsvc_name
 VARIABLE t_padsvc_alt   \ km times 10
 VARIABLE t_padsvc_lat   \ degrees times 100
 VARIABLE t_padsvc_lon   \ degrees times 100
+VARIABLE t_padsvc_0nam
+VARIABLE t_padsvc_0dir  \ degrees times 10
+VARIABLE t_padsvc_0dist \ km times 100
+VARIABLE t_padsvc_1nam
+VARIABLE t_padsvc_1dir  \ degrees times 10
+VARIABLE t_padsvc_1dist \ km times 100
+
 
 VARIABLE t_padsvc_3buff
 
@@ -39,8 +46,8 @@ FALSE t_padsvc_active !
 \
 : t_padsvc_display_fixed_text ( -- )
     3 1 AT-XY   ." LANDING PAD SERVICES"
-    1 3 AT-XY   ." TO>"
-    1 4 AT-XY   ." TO>"
+    1 3 AT-XY   ." TO> "
+    1 4 AT-XY   ." TO> "
 ;
 
 \ Erase the state variables
@@ -48,9 +55,18 @@ FALSE t_padsvc_active !
 HEX
 : t_padsvc_erase_state      ( -- )
     00202020 t_padsvc_name !
-    0 t_padsvc_alt !
-    0 t_padsvc_lat !
-    0 t_padsvc_lon !
+    002D2D2D DUP
+    t_padsvc_0nam !
+    t_padsvc_1nam !
+    0 DUP DUP 
+    t_padsvc_alt !
+    t_padsvc_lat !
+    t_padsvc_lon !
+    0 DUP DUP DUP
+    t_padsvc_0dir !
+    t_padsvc_0dist !
+    t_padsvc_1dir !
+    t_padsvc_1dist !
 ;
 
 \ Erase it now
@@ -69,39 +85,70 @@ HEX
 ;
 
 \ Prepare to print latitude or longitude
+\
 : t_padsvc_prep_latlon      ( c r n -- n +n 0  )
     ROT ROT                 ( n c r )
     AT-XY                   ( n )
+    DUP 0> IF               ( n )
+        ."  "               ( n )
+    THEN                    ( n )
     DUP ABS 0               ( n +n 0 )
 ;
 
 \ Print latitude to two decimal places 
 : t_padsvc_print_lat        ( c r n -- )
     t_padsvc_prep_latlon    ( n +n 0 )
-    <# # # [CHAR] . HOLD # # ROT SIGN #> TYPE
+    <# 7 HOLD # # [CHAR] . HOLD # # ROT SIGN #> TYPE
 ;
 
 \ Print longitude to two decimal places 
 : t_padsvc_print_lon        ( c r n -- )
     t_padsvc_prep_latlon    ( n +n 0 )
-    <# # # [CHAR] . HOLD # # # ROT SIGN #> TYPE
+    <# 7 HOLD # # [CHAR] . HOLD # # # ROT SIGN #> TYPE
 ;
 
-\ Print altitude to  decimal places 
+\ Print altitude in meters 
 : t_padsvc_print_alt        ( c r n -- )
     ROT ROT AT-XY 0         ( d )
     <# [CHAR] M HOLD # # # # #> TYPE
 ;
+
+\ Print distance (in m/10 ) in km to one or two dp
+DECIMAL
+: t_padsvc_print_dist       ( c r n -- )
+    ROT ROT AT-XY           ( n )
+    DUP 100000 < IF         ( n )
+        0 <# # # [CHAR] . HOLD # # # #> TYPE
+    ELSE                    ( n )
+        10 /                ( n/10 )
+        0 <# # [CHAR] . HOLD # # # # #> TYPE
+    THEN                    (  )
+    ."  KM"                  (  )
+;
+
+\ Print direction (in degrees*10) in degrees to one dp
+: t_padsvc_print_dir        ( c r n --  )
+    ROT ROT AT-XY 0         ( d )
+    <# 7 HOLD # [CHAR] . HOLD # # # #> TYPE
+;
+
 
 \ Display all of the acquired data for the pad (if menu active)
 \
 DECIMAL
 : t_padsvc_update           ( -- )
     t_padsvc_active @ IF
+        DECIMAL
         1 2 t_padsvc_name @ t_padsvc_print_3char    (  )
         5 2 t_padsvc_lat @ t_padsvc_print_lat       (  )
         12 2 t_padsvc_lon @ t_padsvc_print_lon      (  )
         20 2 t_padsvc_alt @ t_padsvc_print_alt      (  )
+        5  3 t_padsvc_0nam @ t_padsvc_print_3char   (  )
+        9  3 t_padsvc_0dir @ t_padsvc_print_dir     (  )
+        16 3 t_padsvc_0dist @ t_padsvc_print_dist   (  )
+        5  4 t_padsvc_1nam @ t_padsvc_print_3char   (  )
+        9  4 t_padsvc_1dir @ t_padsvc_print_dir     (  )
+        16 4 t_padsvc_1dist @ t_padsvc_print_dist   (  )
         fms_park_cursor                             (  )
     THEN
 ;
@@ -112,6 +159,7 @@ DECIMAL
 DECIMAL
 : t_padsvc_rcv_padl           ( n -- )
     DUP MASK_PADL_VALUE AND     ( n v )
+    256 * 256 /                 ( n v ) \ extend sign
     SWAP                        ( v n )
     MASK_PADL_MSG AND           ( v pm )
     DUP PADL_RSRC = IF          ( v pm )
@@ -121,7 +169,6 @@ DECIMAL
         t_padsvc_name !         (  )
     ELSE DUP PADL_ALT = IF      ( v pm )
         DROP                    ( v )
-        10 /                    ( v/10 )
         t_padsvc_alt !          (  )
     ELSE DUP PADL_LON = IF      ( v pm )
         DROP                    ( v )
@@ -131,11 +178,39 @@ DECIMAL
         DROP                    ( v )
         10 /                    ( v/10 )
         t_padsvc_lat !          (  )
+    ELSE DUP PADL_PAD_0_NAME = IF   ( v pm )
+        DROP                    ( v )
+        t_padsvc_0nam !         (  )
+    ELSE DUP PADL_PAD_0_DIR = IF    ( v pm )
+        DROP                    ( v )
+        100 /                   ( v/100 )
+        t_padsvc_0dir !         (  )
+    ELSE DUP PADL_PAD_0_DIST = IF   ( v pm )
+        DROP                    ( v )
+        10 /                    ( v/10 )
+        t_padsvc_0dist !        (  )
+    ELSE DUP PADL_PAD_1_NAME = IF   ( v pm )
+        DROP                    ( v )
+        t_padsvc_1nam !         (  )
+    ELSE DUP PADL_PAD_1_DIR = IF    ( v pm )
+        DROP                    ( v )
+        100 /                   ( v/100 )
+        t_padsvc_1dir !         (  )
+    ELSE DUP PADL_PAD_1_DIST = IF   ( v pm )
+        DROP                    ( v )
+        10 /                    ( v/10 )
+        t_padsvc_1dist !        (  )
     ELSE DUP PADL_DONE = IF     ( v pm )
         2DROP                   (  )
         t_padsvc_update         (  )
     ELSE 2DROP                  (  )    \ no matches
     THEN    \ PADL_DONE
+    THEN    \ PADL_PAD_1_DIST
+    THEN    \ PADL_PAD_1_DIR
+    THEN    \ PADL_PAD_1_NAME
+    THEN    \ PADL_PAD_0_DIST
+    THEN    \ PADL_PAD_0_DIR
+    THEN    \ PADL_PAD_0_NAME
     THEN    \ PADL_LAT
     THEN    \ PADL_LON
     THEN    \ PADL_ALT
