@@ -35,6 +35,15 @@ VARIABLE t_padsvc_0dist \ km times 100
 VARIABLE t_padsvc_1nam
 VARIABLE t_padsvc_1dir  \ degrees times 10
 VARIABLE t_padsvc_1dist \ km times 100
+\ pad resource state
+VARIABLE t_padsvc_food  \ kg times 10
+VARIABLE t_padsvc_water \ liters times 10
+VARIABLE t_padsvc_elec  \ kwh times 10
+VARIABLE t_padsvc_o2    \ liters times 10
+VARIABLE t_padsvc_lioh  \ kg times 10
+VARIABLE t_padsvc_prop  \ kg / 100
+VARIABLE t_padsvc_repair    \ 1 or 0
+VARIABLE t_padsvc_spice \ kg / 100
 
 
 VARIABLE t_padsvc_3buff
@@ -67,6 +76,17 @@ HEX
     t_padsvc_0dist !
     t_padsvc_1dir !
     t_padsvc_1dist !
+    \ initialize resources to -1 to reveal
+    \ which values have actually been set
+    0 1- DUP 2DUP 2DUP 2DUP
+    t_padsvc_food !
+    t_padsvc_water !
+    t_padsvc_elec !
+    t_padsvc_o2 !
+    t_padsvc_lioh !
+    t_padsvc_prop !
+    t_padsvc_repair !
+    t_padsvc_spice !
 ;
 
 \ Erase it now
@@ -154,6 +174,75 @@ DECIMAL
 ;
 
 
+\ Display a single potentially available resource 
+\
+: t_padsvc_print_rsrc   ( addr l c r v addr l c r -- )
+    AT-XY               ( addr l c r v addr l )
+    TYPE                ( addr l c r v )
+    DUP 0 1- = IF       ( addr l c r v ) 
+        ." ----" DROP   ( addr l c r )
+    ELSE
+        0 <# # [CHAR] . HOLD # # #> TYPE    ( addr l c r )
+    THEN
+    AT-XY TYPE          (  )
+;
+
+\ Display all of the resource data for the pad (if menu active)
+\
+DECIMAL
+: t_padsvc_rsrcupd           ( -- )
+    t_padsvc_active @ IF
+        DECIMAL
+        S" KG"  10 6  t_padsvc_food @   S" FOOD   " 1 5   t_padsvc_print_rsrc
+        S" L"   11 8  t_padsvc_water @  S" WATER  " 1 7   t_padsvc_print_rsrc
+        S" KWH" 9 10  t_padsvc_elec  @  S" ELEC   " 1 9   t_padsvc_print_rsrc
+        S" L"   11 12 t_padsvc_o2  @    S" O2     " 1 11  t_padsvc_print_rsrc
+        S" KG"  23 6  t_padsvc_lioh @   S" LIOH   " 14 5  t_padsvc_print_rsrc
+        S" MT"  23 8  t_padsvc_prop @   S" PROP   " 14 7  t_padsvc_print_rsrc
+        S" "    1  1  t_padsvc_repair @ S" REPAIR " 14 9  t_padsvc_print_rsrc
+        S" MT"  23 12 t_padsvc_spice @  S" MINED  " 14 11 t_padsvc_print_rsrc
+        fms_park_cursor                             (  )
+    THEN
+;
+
+
+\ handler for resource qty message: | rsrc | v hi | v lo |
+\
+HEX
+: t_padsvc_rcv_resrc            ( v3 -- )
+    DUP                         ( v3 v3 )
+    MASK_RSRC_VALUE AND SWAP    ( v v3 )
+    PADL_RSRC_POS /             ( v r )
+    DUP PADL_FOOD = IF          ( v r )
+        DROP t_padsvc_food !    (  )
+    ELSE DUP PADL_WATER = IF    ( v r )
+        DROP t_padsvc_water !   (  )
+    ELSE DUP PADL_ELEC = IF     ( v r )
+        DROP t_padsvc_elec !    (  )
+    ELSE DUP PADL_O2 = IF       ( v r )
+        DROP t_padsvc_o2 !      (  )
+    ELSE DUP PADL_LIOH = IF     ( v r )
+        DROP t_padsvc_lioh !    (  )
+    ELSE DUP PADL_PROP = IF     ( v r )
+        DROP t_padsvc_prop !    (  )
+    ELSE DUP PADL_REPAIR = IF   ( v r )
+        DROP                    ( v )
+        10 * t_padsvc_repair !  (  )
+    ELSE DUP PADL_SPICE = IF    ( v r )
+        DROP t_padsvc_spice !   (  )
+    ELSE 2DROP                  (  ) \ no matches
+    THEN    \ PADL_SPICE
+    THEN    \ PADL_REPAIR
+    THEN    \ PADL_PROP
+    THEN    \ PADL_LIOH
+    THEN    \ PADL_O2
+    THEN    \ PADL_ELEC
+    THEN    \ PADL_WATER
+    THEN    \ PADL_FOOD
+    t_padsvc_rsrcupd
+;
+
+
 \ handler for padl pad local service messages
 \
 DECIMAL
@@ -163,6 +252,8 @@ DECIMAL
     SWAP                        ( v n )
     MASK_PADL_MSG AND           ( v pm )
     DUP PADL_RSRC = IF          ( v pm )
+        DROP                    ( v )
+        t_padsvc_rcv_resrc      (  )
     ELSE DUP PADL_NAME = IF     ( v pm )
         DROP                    ( v )
         t_padsvc_erase_state    ( v )
@@ -203,6 +294,7 @@ DECIMAL
     ELSE DUP PADL_DONE = IF     ( v pm )
         2DROP                   (  )
         t_padsvc_update         (  )
+        t_padsvc_rsrcupd        (  )
     ELSE 2DROP                  (  )    \ no matches
     THEN    \ PADL_DONE
     THEN    \ PADL_PAD_1_DIST
@@ -249,6 +341,7 @@ t_padsvc_menu_create
     t_padsvc_menu menu_show          (  )
     t_padsvc_display_fixed_text      (  )
     t_padsvc_update                  (  )
+    t_padsvc_rsrcupd                 (  )
     fms_refresh_buffer_display       (  )
 ;
 
