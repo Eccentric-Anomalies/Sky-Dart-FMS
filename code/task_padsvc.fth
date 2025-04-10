@@ -44,9 +44,19 @@ VARIABLE t_padsvc_lioh  \ kg times 10
 VARIABLE t_padsvc_prop  \ kg / 100
 VARIABLE t_padsvc_repair    \ 1 or 0
 VARIABLE t_padsvc_spice \ kg / 100
-
+\ resource transfer state 1 = transferring 0 = not
+VARIABLE t_padsvc_food_state
+VARIABLE t_padsvc_water_state
+VARIABLE t_padsvc_elec_state
+VARIABLE t_padsvc_o2_state
+VARIABLE t_padsvc_lioh_state
+VARIABLE t_padsvc_prop_state
+VARIABLE t_padsvc_repair_state
+VARIABLE t_padsvc_spice_state
 
 VARIABLE t_padsvc_3buff
+
+VARIABLE t_padsvc_menu_t
 
 \ Initialize variables as needed
 FALSE t_padsvc_active !
@@ -87,6 +97,15 @@ HEX
     t_padsvc_prop !
     t_padsvc_repair !
     t_padsvc_spice !
+    0 DUP 2DUP 2DUP 2DUP
+    t_padsvc_food_state !
+    t_padsvc_water_state !
+    t_padsvc_elec_state !
+    t_padsvc_o2_state !
+    t_padsvc_lioh_state !
+    t_padsvc_prop_state !
+    t_padsvc_repair_state !
+    t_padsvc_spice_state !
 ;
 
 \ Erase it now
@@ -173,19 +192,73 @@ DECIMAL
     THEN
 ;
 
+\ Function key handlers 
+\
+\ Generic handler takes port ID, and state address,
+\ toggles the state and sends it to the port
+: t_padsvc_state_toggle     ( p saddr -- )
+    DUP                         ( p saddr saddr )
+    @                           ( p saddr s )
+    1 = IF                      ( p saddr )
+        0                       ( p saddr ns )
+    ELSE                        ( p saddr )
+        1                       ( p saddr ns )
+    THEN                        ( p saddr ns )
+    DUP                         ( p saddr ns ns )
+    ROT                         ( p ns ns saddr )
+    !                           ( p ns )
+    SWAP                        ( ns p )
+    OUT                         (  )
+;
+
+: t_padsvc_food_key
+;
+
+: t_padsvc_water_key
+;
+
+: t_padsvc_elec_key
+;
+
+: t_padsvc_o2_key
+;
+
+: t_padsvc_lioh_key
+;
+
+: t_padsvc_prop_key             ( -- )
+    PORT_PROP_XFER_STATE t_padsvc_prop_state t_padsvc_state_toggle
+;
+
+: t_padsvc_repair_key
+;
+
+: t_padsvc_spice_key
+;
+
+
 
 \ Display a single potentially available resource 
 \
-: t_padsvc_print_rsrc   ( addr l c r v addr l c r -- )
-    AT-XY               ( addr l c r v addr l )
-    TYPE                ( addr l c r v )
-    DUP 0 1- = IF       ( addr l c r v ) 
-        ." ----" DROP   ( addr l c r )
+: t_padsvc_print_rsrc   ( addr l c r fc fr f v addr l c r -- )
+    AT-XY               ( addr l c r fc fr f v addr l )
+    TYPE                ( addr l c r fc fr f v )
+    DUP 0 1- = IF       ( addr l c r fc fr f v ) 
+        ." ----" DROP   ( addr l c r fc fr f )
+        DROP 2DROP      ( addr l c r )
     ELSE
-        0 <# # [CHAR] . HOLD # # #> TYPE    ( addr l c r )
+        \ display in bold, assign the function key
+        UNDERLINEV        ( addr l c r fc fr f v )
+        0 <# # [CHAR] . HOLD # # #> TYPE    ( addr l c r fc fr f )
+        NOMODEV         ( addr l c r fc fr f )
+        0 0 0 0 t_padsvc_menu_t @   ( addr l c r fc fr f 0 0 0 0 m )
+        7 PICK 7 PICK               ( addr l c r fc fr f 0 0 0 0 m fc fr )
+        menu_add_option ( addr l c r fc fr )
+        2DROP           ( addr l c r )
     THEN
     AT-XY TYPE          (  )
 ;
+
 
 \ Display all of the resource data for the pad (if menu active)
 \
@@ -193,14 +266,15 @@ DECIMAL
 : t_padsvc_rsrcupd           ( -- )
     t_padsvc_active @ IF
         DECIMAL
-        S" KG"  10 6  t_padsvc_food @   S" FOOD   " 1 5   t_padsvc_print_rsrc
-        S" L"   11 8  t_padsvc_water @  S" WATER  " 1 7   t_padsvc_print_rsrc
-        S" KWH" 9 10  t_padsvc_elec  @  S" ELEC   " 1 9   t_padsvc_print_rsrc
-        S" L"   11 12 t_padsvc_o2  @    S" O2     " 1 11  t_padsvc_print_rsrc
-        S" KG"  23 6  t_padsvc_lioh @   S" LIOH   " 14 5  t_padsvc_print_rsrc
-        S" MT"  23 8  t_padsvc_prop @   S" PROP   " 14 7  t_padsvc_print_rsrc
-        S" "    1  1  t_padsvc_repair @ S" REPAIR " 14 9  t_padsvc_print_rsrc
-        S" MT"  23 12 t_padsvc_spice @  S" MINED  " 14 11 t_padsvc_print_rsrc
+        \ unit, unit position, fkey position, fkey handler, qty, qty name, name position
+        S" KG"  10 6  0 1 ['] t_padsvc_food_key   t_padsvc_food @   S" FOOD   " 1 5   t_padsvc_print_rsrc
+        S" L"   11 8  0 2 ['] t_padsvc_water_key  t_padsvc_water @  S" WATER  " 1 7   t_padsvc_print_rsrc
+        S" KWH" 9 10  0 3 ['] t_padsvc_elec_key   t_padsvc_elec  @  S" ELEC   " 1 9   t_padsvc_print_rsrc
+        S" L"   11 12 0 4 ['] t_padsvc_o2_key     t_padsvc_o2  @    S" O2     " 1 11  t_padsvc_print_rsrc
+        S" KG"  23 6  1 1 ['] t_padsvc_lioh_key   t_padsvc_lioh @   S" LIOH   " 14 5  t_padsvc_print_rsrc
+        S" MT"  23 8  1 2 ['] t_padsvc_prop_key   t_padsvc_prop @   S" PROP   " 14 7  t_padsvc_print_rsrc
+        S" "    1  1  1 3 ['] t_padsvc_repair_key t_padsvc_repair @ S" REPAIR " 14 9  t_padsvc_print_rsrc
+        S" MT"  23 12 1 4 ['] t_padsvc_spice_key  t_padsvc_spice @  S" MINED  " 14 11 t_padsvc_print_rsrc
         fms_park_cursor                             (  )
     THEN
 ;
@@ -326,6 +400,8 @@ DECIMAL
 \ (2) Allocate, clear, define and build the menu
 menu_create t_padsvc_menu
 t_padsvc_menu menu_clear
+\ save its address
+t_padsvc_menu t_padsvc_menu_t !
 
 : t_padsvc_menu_create
     ['] t_padsvc_return S" <RETURN" 0 0 t_padsvc_menu 0 5 menu_add_option
