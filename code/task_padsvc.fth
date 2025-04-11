@@ -56,7 +56,10 @@ VARIABLE t_padsvc_spice_state
 
 VARIABLE t_padsvc_3buff
 
+\ reference to the menu
+\ reference to the resource update routine
 VARIABLE t_padsvc_menu_t
+VARIABLE t_padsvc_rsrcupd_t
 
 \ Initialize variables as needed
 FALSE t_padsvc_active !
@@ -196,6 +199,7 @@ DECIMAL
 \
 \ Generic handler takes port ID, and state address,
 \ toggles the state and sends it to the port
+\ update the resource display afterwards
 : t_padsvc_state_toggle     ( p saddr -- )
     DUP                         ( p saddr saddr )
     @                           ( p saddr s )
@@ -209,6 +213,8 @@ DECIMAL
     !                           ( p ns )
     SWAP                        ( ns p )
     OUT                         (  )
+    t_padsvc_rsrcupd_t @        ( faddr )
+    EXECUTE                     (  )
 ;
 
 : t_padsvc_food_key
@@ -239,25 +245,32 @@ DECIMAL
 
 
 \ Display a single potentially available resource 
-\
-: t_padsvc_print_rsrc   ( addr l c r fc fr f v addr l c r -- )
-    AT-XY               ( addr l c r fc fr f v addr l )
-    TYPE                ( addr l c r fc fr f v )
-    DUP 0 1- = IF       ( addr l c r fc fr f v ) 
-        ." ----" DROP   ( addr l c r fc fr f )
-        DROP 2DROP      ( addr l c r )
+\    units text, units c r, fkey c r, fkey xt, vaddr, staddr, label, label c r 
+: t_padsvc_print_rsrc   ( addr l c r fc fr f sa va addr l c r -- )
+    AT-XY               ( addr l c r fc fr f sa va addr l )
+    TYPE                ( addr l c r fc fr f sa va )
+    @                   ( addr l c r fc fr f sa v )
+    DUP 0 1- = IF       ( addr l c r fc fr f sa v ) 
+        ." ----" 2DROP  ( addr l c r fc fr f )
+        DROP 0          ( addr l c r fc fr xt=0 )
     ELSE
         \ display in bold, assign the function key
-        UNDERLINEV        ( addr l c r fc fr f v )
+        SWAP @          ( addr l c r fc fr f v s )
+        1 = IF          ( addr l c r fc fr f v )
+            REVERSEV    ( addr l c r fc fr f v )
+        ELSE            ( addr l c r fc fr f v )
+            UNDERLINEV      ( addr l c r fc fr f v )
+        THEN
         0 <# # [CHAR] . HOLD # # #> TYPE    ( addr l c r fc fr f )
         NOMODEV         ( addr l c r fc fr f )
-        0 0 0 0 t_padsvc_menu_t @   ( addr l c r fc fr f 0 0 0 0 m )
-        7 PICK 7 PICK               ( addr l c r fc fr f 0 0 0 0 m fc fr )
-        menu_add_option ( addr l c r fc fr )
-        2DROP           ( addr l c r )
     THEN
+    ROT ROT             ( addr l c r f fc fr )
+    t_padsvc_menu_t @   ( addr l c r f fc fr m )
+    ROT ROT             ( addr l c r f m fc fr )
+    menu_set_item_xt    ( addr l c r )
     AT-XY TYPE          (  )
 ;
+
 
 
 \ Display all of the resource data for the pad (if menu active)
@@ -266,19 +279,30 @@ DECIMAL
 : t_padsvc_rsrcupd           ( -- )
     t_padsvc_active @ IF
         DECIMAL
-        \ unit, unit position, fkey position, fkey handler, qty, qty name, name position
-        S" KG"  10 6  0 1 ['] t_padsvc_food_key   t_padsvc_food @   S" FOOD   " 1 5   t_padsvc_print_rsrc
-        S" L"   11 8  0 2 ['] t_padsvc_water_key  t_padsvc_water @  S" WATER  " 1 7   t_padsvc_print_rsrc
-        S" KWH" 9 10  0 3 ['] t_padsvc_elec_key   t_padsvc_elec  @  S" ELEC   " 1 9   t_padsvc_print_rsrc
-        S" L"   11 12 0 4 ['] t_padsvc_o2_key     t_padsvc_o2  @    S" O2     " 1 11  t_padsvc_print_rsrc
-        S" KG"  23 6  1 1 ['] t_padsvc_lioh_key   t_padsvc_lioh @   S" LIOH   " 14 5  t_padsvc_print_rsrc
-        S" MT"  23 8  1 2 ['] t_padsvc_prop_key   t_padsvc_prop @   S" PROP   " 14 7  t_padsvc_print_rsrc
-        S" "    1  1  1 3 ['] t_padsvc_repair_key t_padsvc_repair @ S" REPAIR " 14 9  t_padsvc_print_rsrc
-        S" MT"  23 12 1 4 ['] t_padsvc_spice_key  t_padsvc_spice @  S" MINED  " 14 11 t_padsvc_print_rsrc
+        \ unit, unit position, fkey position, fkey handler, state addr, 
+        \   qty addr, qty name, name position
+        S" KG"  10 6  0 1 ['] t_padsvc_food_key   t_padsvc_food_state   
+            t_padsvc_food   S" FOOD   " 1 5   t_padsvc_print_rsrc
+        S" L"   11 8  0 2 ['] t_padsvc_water_key  t_padsvc_water_state  
+            t_padsvc_water  S" WATER  " 1 7   t_padsvc_print_rsrc
+        S" KWH" 9 10  0 3 ['] t_padsvc_elec_key   t_padsvc_elec_state   
+            t_padsvc_elec   S" ELEC   " 1 9   t_padsvc_print_rsrc
+        S" L"   11 12 0 4 ['] t_padsvc_o2_key     t_padsvc_o2_state     
+            t_padsvc_o2     S" O2     " 1 11  t_padsvc_print_rsrc
+        S" KG"  23 6  1 1 ['] t_padsvc_lioh_key   t_padsvc_lioh_state   
+            t_padsvc_lioh   S" LIOH   " 14 5  t_padsvc_print_rsrc
+        S" MT"  23 8  1 2 ['] t_padsvc_prop_key   t_padsvc_prop_state   
+            t_padsvc_prop   S" PROP   " 14 7  t_padsvc_print_rsrc
+        S" "    1  1  1 3 ['] t_padsvc_repair_key t_padsvc_repair_state 
+            t_padsvc_repair S" REPAIR " 14 9  t_padsvc_print_rsrc
+        S" MT"  23 12 1 4 ['] t_padsvc_spice_key  t_padsvc_spice_state  
+            t_padsvc_spice  S" MINED  " 14 11 t_padsvc_print_rsrc
         fms_park_cursor                             (  )
     THEN
 ;
 
+\ preserve a reference to it
+' t_padsvc_rsrcupd t_padsvc_rsrcupd_t !
 
 \ handler for resource qty message: | rsrc | v hi | v lo |
 \
