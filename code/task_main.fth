@@ -2,10 +2,10 @@
 \
 \ Definition of top level UI task
 \
-
+\  |           |          |
 \         SKY-DART FMS
 \            v1.0.0
-\  >MSGS
+\  >MSGS             >DIAG
 \
 \  >CHRON 
 \
@@ -18,8 +18,6 @@
 \
 \
 
-\ (0) Variable to hold addr of this task
-VARIABLE task_main_addr
 
 \ (1) Allocate and clear a menu structure: task_main_menu;
 menu_create task_main_menu
@@ -35,10 +33,15 @@ task_main_menu menu_clear
     task_main_addr @ task_padsvc task_start
 ;
 
+: task_main_diag
+    task_main_addr @ task_diag task_start
+;
+
 \ (3) Define the menu
 : task_main_menu_create
-    ['] task_main_chron S" >CHRON" 0 0 task_main_menu 0 1 menu_add_option
-    ['] task_main_padsvc S" >PADSVC" 0 0 task_main_menu 0 2 menu_add_option
+    ['] task_main_chron S" >CHRON" 0 0 task_main_menu 0 0 menu_add_option
+    ['] task_main_padsvc S" >PADSVC" 0 0 task_main_menu 0 1 menu_add_option
+    ['] task_main_diag S" >DIAG" 0 0 task_main_menu 1 0 menu_add_option
 ;
 
 \ (4) Build the menu

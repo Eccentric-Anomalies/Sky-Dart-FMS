@@ -413,9 +413,9 @@ DECIMAL
 \
 : t_padsvc_return        ( -- )
     FALSE t_padsvc_active !
-    t_padsvc_addr @     ( this-task )
-    DUP                 ( this-task this-task )
-    task_get_orig       ( this-task orig-task )
+    0                   ( null-orig-task)  \ returning to the top level
+    t_padsvc_addr @     ( null-orig-task this-task )
+    task_get_orig       ( null-orig-task orig-task )
     task_start          (  )
 ;
 

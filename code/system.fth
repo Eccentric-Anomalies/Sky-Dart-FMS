@@ -27,8 +27,11 @@ INCLUDE menu.fth
 INCLUDE task.fth
 \ UI/menu tasks below: menu leaves first, root last
 \ Levels seperated by ----
+INCLUDE task_gear.fth
+\ ----
 INCLUDE task_chron.fth
 INCLUDE task_padsvc.fth
+INCLUDE task_diag.fth
 \ ----
 INCLUDE task_main.fth
 \ Simple IO Processing

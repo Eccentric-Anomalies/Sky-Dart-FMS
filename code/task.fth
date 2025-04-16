@@ -19,6 +19,12 @@ TASK_POLL SYSTEM_CELL_SIZE + CONSTANT TASK_ORIG
 \ Definitions and tools for defining UI tasks on the FMS
 VARIABLE task_current_xt        \ current task poll xt
 
+\ Global task pointers 
+VARIABLE task_main_addr
+VARIABLE t_diag_addr
+
+
+
 
 \ Initialize variables
 0 task_current_xt !
