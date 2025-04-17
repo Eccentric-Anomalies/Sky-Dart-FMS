@@ -25,6 +25,7 @@ INCLUDE clock.fth
 INCLUDE fms.fth
 INCLUDE menu.fth
 INCLUDE task.fth
+INCLUDE task_globals.fth
 \ UI/menu tasks below: menu leaves first, root last
 \ Levels seperated by ----
 INCLUDE task_gear.fth
