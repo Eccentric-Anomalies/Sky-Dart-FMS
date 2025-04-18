@@ -5,7 +5,7 @@
 \  |           |           |            
 \     LANDING GEAR STATUS
 \
-\       OK         OK
+\      GOOD     FAILIMM
 \     XX.X KN   XX.X KN   
 \          \     /
 \           *---*   
@@ -13,7 +13,7 @@
 \           *---*
 \          /     \
 \     XX.X KN   XX.X KN   
-\     DAMAGED   DAMAGED
+\     MINOR     SEVERE 
 \
 \
 \  <RETURN
@@ -91,7 +91,24 @@ DECIMAL
         t_gear_dmg_rows + @     ( offs col row )
         AT-XY                   ( offs )
         t_gear_damage + @       ( dmg )
-        0 <# # # #> TYPE (  )
+        DUP 10 > IF             ( dmg )
+            REVERSEV            ( dmg )
+            S" MISSING"         ( dmg addr l )
+        ELSE DUP 4 > IF         ( dmg )
+            REVERSEV            ( dmg )
+            S" FAILIMM"         ( dmg addr l )
+        ELSE DUP 2 > IF         ( dmg )
+            UNDERLINEV          ( dmg )
+            S" SEVERE "         ( dmg addr l )
+        ELSE DUP 0> IF          ( dmg )
+            S" DAMAGED"         ( dmg addr l )
+        ELSE                    ( dmg )
+            S"   OK   "         ( dmg addr l )
+        THEN \ >0               ( dmg addr l )
+        THEN \ >2               ( dmg addr l )
+        THEN \ >5               ( dmg addr l )
+        THEN \ >10              ( dmg addr l )
+        TYPE NOMODEV DROP       (  )
     LOOP (  )
 ;
 
@@ -130,7 +147,9 @@ t_gear_menu_create
 DECIMAL
 : t_gear_init                 ( -- )
     PAGE
-    t_gear_menu menu_show    (  )
+    t_gear_damage 4 CELLS 0 FILL        (  )
+    t_gear_force 4 CELLS 0 FILL         (  )
+    t_gear_menu menu_show               (  )
     4 1  AT-XY ." LANDING GEAR STATUS"
     9 4  AT-XY ." KN        KN"
     9 5  AT-XY ." \     /"
