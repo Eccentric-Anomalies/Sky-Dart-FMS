@@ -18,9 +18,11 @@
 \
 \  <RETURN
 
-\ Create storage for damage and force values
+\ Create storage for damage and force values and clear
 CREATE t_gear_damage 4 CELLS ALLOT
 CREATE t_gear_force 4 CELLS ALLOT
+t_gear_damage 4 CELLS 0 FILL        
+t_gear_force 4 CELLS 0 FILL     
 
 \ Create list of column coordinates for force displays
 CREATE t_gear_force_cols 4 , 4 , 14 , 14 ,
@@ -36,7 +38,6 @@ VARIABLE t_gear_changed
 \
 DECIMAL
 : t_gear_rcv_foot               ( n -- )
-    0 t_gear_changed !          ( n )
     DUP FOOT_ID_FIELD /         ( n id )
     CELLS                       ( n 4id )
     SWAP                        ( 4id n )
@@ -47,18 +48,14 @@ DECIMAL
     3 PICK DUP                  ( 4id d f f 4id 4id )
     ROT SWAP                    ( 4id d f 4id f 4id )
     t_gear_force + @            ( 4id d f 4id f old-force )
-    <> IF t_gear_changed 1 +! THEN  ( 4id d f 4id )
+    <> IF 1 t_gear_changed +! THEN  ( 4id d f 4id )
     DUP                         ( 4id d f 4id 4id )
     ROT SWAP                    ( 4id d 4id f 4id )
     t_gear_force + !            ( 4id d 4id )
     SWAP DUP ROT                ( 4id d d 4id )
     t_gear_damage + @           ( 4id d d old-dam )
-    <> IF t_gear_changed 1 +! THEN  ( 4id d )
+    <> IF 1 t_gear_changed +! THEN  ( 4id d )
     SWAP t_gear_damage + !      (  )
-    t_gear_changed @            ( f )
-    0<> IF                      (  )
-        \ FIXME do something when the gear values change
-    THEN
 ;
 
 
@@ -113,6 +110,13 @@ DECIMAL
 ;
 
 
+\ Display damage and force values only
+: t_geat_display_values     ( -- )
+    t_gear_display_forces
+    t_gear_display_damages
+    fms_park_cursor
+;
+
 
 \ (1) Allocate and clear a menu structure: t_gear_menu
 menu_create t_gear_menu
@@ -138,17 +142,17 @@ t_gear_menu_create
 
 \ (6) t_gear poll function
 : t_gear_poll            ( -- )
-    t_gear_display_forces
-    t_gear_display_damages
-    fms_park_cursor
+    t_gear_changed @            ( f )
+    0<> IF                      (  )
+        0 t_gear_changed !      (  )
+        t_geat_display_values   (  )
+    THEN
 ;
 
 \ (5) t_gear init function
 DECIMAL
 : t_gear_init                 ( -- )
     PAGE
-    t_gear_damage 4 CELLS 0 FILL        (  )
-    t_gear_force 4 CELLS 0 FILL         (  )
     t_gear_menu menu_show               (  )
     4 1  AT-XY ." LANDING GEAR STATUS"
     9 4  AT-XY ." KN        KN"
@@ -158,6 +162,7 @@ DECIMAL
     11 8 AT-XY 18 EMIT 18 EMIT 18 EMIT
     9 9  AT-XY ." /     \"
     9 10 AT-XY ." KN        KN"
+    t_geat_display_values       (  )
     fms_refresh_buffer_display  (  )
 ;
 
