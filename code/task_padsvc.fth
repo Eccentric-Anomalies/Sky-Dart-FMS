@@ -42,7 +42,7 @@ VARIABLE t_padsvc_elec  \ kwh times 10
 VARIABLE t_padsvc_o2    \ liters times 10
 VARIABLE t_padsvc_lioh  \ kg times 10
 VARIABLE t_padsvc_prop  \ kg / 100
-VARIABLE t_padsvc_repair    \ 1 or 0
+VARIABLE t_padsvc_repair    \ 10 or 0
 VARIABLE t_padsvc_spice \ kg / 100
 \ resource transfer state 1 = transferring 0 = not
 VARIABLE t_padsvc_food_state
@@ -236,7 +236,8 @@ DECIMAL
     PORT_PROP_XFER_STATE t_padsvc_prop_state t_padsvc_state_toggle
 ;
 
-: t_padsvc_repair_key
+: t_padsvc_repair_key           ( -- )
+    PORT_REPAIR_XFER_STATE t_padsvc_repair_state t_padsvc_state_toggle
 ;
 
 : t_padsvc_spice_key
@@ -293,7 +294,7 @@ DECIMAL
             t_padsvc_lioh   S" LIOH   " 14 5  t_padsvc_print_rsrc
         S" MT"  23 8  1 2 ['] t_padsvc_prop_key   t_padsvc_prop_state   
             t_padsvc_prop   S" PROP   " 14 7  t_padsvc_print_rsrc
-        S" "    1  1  1 3 ['] t_padsvc_repair_key t_padsvc_repair_state 
+        S" 1/0" 22 10 1 3 ['] t_padsvc_repair_key t_padsvc_repair_state 
             t_padsvc_repair S" REPAIR " 14 9  t_padsvc_print_rsrc
         S" MT"  23 12 1 4 ['] t_padsvc_spice_key  t_padsvc_spice_state  
             t_padsvc_spice  S" MINED  " 14 11 t_padsvc_print_rsrc
@@ -325,7 +326,7 @@ HEX
         DROP t_padsvc_prop !    (  )
     ELSE DUP PADL_REPAIR = IF   ( v r )
         DROP                    ( v )
-        10 * t_padsvc_repair !  (  )
+        0A * t_padsvc_repair !  (  )
     ELSE DUP PADL_SPICE = IF    ( v r )
         DROP t_padsvc_spice !   (  )
     ELSE 2DROP                  (  ) \ no matches
@@ -392,7 +393,7 @@ DECIMAL
     ELSE DUP PADL_DONE = IF     ( v pm )
         2DROP                   (  )
         t_padsvc_update         (  )
-        t_padsvc_rsrcupd        (  )
+\ FIXME        t_padsvc_rsrcupd        (  )
     ELSE 2DROP                  (  )    \ no matches
     THEN    \ PADL_DONE
     THEN    \ PADL_PAD_1_DIST
@@ -407,6 +408,17 @@ DECIMAL
     THEN    \ PADL_NAME
     THEN    \ PADL_RSRC
 ;
+
+\ Notification handler for ground state change
+: t_padsvc_grounded_notify  ( gf -- )
+    NOT IF              (  )
+        t_padsvc_erase_state
+        t_padsvc_rsrcupd
+    THEN                (  )
+;
+
+\ Place a reference to the notification function
+' t_padsvc_grounded_notify t_gear_padsvc_grounded_notify !
 
 \ (1) handlers for function keys
 \ handler to return to calling menu
@@ -452,6 +464,7 @@ t_padsvc_menu_create
 \ (4) Create the task definition: task_padsvc
 ' t_padsvc_poll ' t_padsvc_init task_create task_padsvc
 task_padsvc t_padsvc_addr !
+
 
 \ Listen for pad service messages
 PORT_PADL_RECV 0 LISTEN t_padsvc_rcv_padl

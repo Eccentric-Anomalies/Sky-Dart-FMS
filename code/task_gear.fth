@@ -33,6 +33,71 @@ CREATE t_gear_dmg_rows 3 , 11 , 11 , 3 ,
 
 \ Local variables
 VARIABLE t_gear_changed
+VARIABLE t_gear_grounded
+VARIABLE t_gear_pending
+VARIABLE t_gear_pending_grounded
+
+\ Initialize
+FALSE t_gear_grounded !
+FALSE t_gear_pending !
+FALSE t_gear_pending_grounded !
+
+
+\ Pending timer expired
+: t_gear_timer_expired          ( -- )
+    TID_TASK_GEAR P-STOP        (  )
+    FALSE t_gear_pending !      (  )
+    t_gear_pending_grounded @   ( ps )
+    DUP t_gear_grounded !       ( ns )
+    t_gear_notify_grounded      (  )
+;
+
+
+\ Set pending state 
+: t_gear_set_pending            ( gp -- )
+    t_gear_pending @ NOT IF     ( gp )
+        t_gear_pending_grounded !   (  )
+        TRUE t_gear_pending !   (  )
+        ['] t_gear_timer_expired
+        TID_TASK_GEAR 1000      ( xt i n )
+        P-TIMERX
+    ELSE                        ( gp )
+        DROP                    (  )
+    THEN
+;
+
+\ Clear pending state
+: t_gear_clear_pending          ( -- )
+    t_gear_pending @ IF         (  )
+        FALSE t_gear_pending !  (  )
+        TID_TASK_GEAR P-STOP    (  )
+    THEN
+;
+
+\ Check for grounded state change
+\
+: t_gear_check_grounded         ( -- )
+    0                           ( sum=0 )
+    4 0 DO                      ( sum )
+        t_gear_force I + @      ( sum f )
+        +
+    LOOP                        ( sum )
+    0= IF                       (  )
+        t_gear_grounded @ IF    (  )
+            FALSE               ( f )   \ not grounded pending
+            t_gear_set_pending  (  )
+        ELSE
+            t_gear_clear_pending    (  )
+        THEN                    (  )
+    ELSE                        (  )
+        t_gear_grounded @ NOT IF    (  )
+            TRUE                ( t )   \ grounded pending
+            t_gear_set_pending  (  )
+        ELSE                    (  )
+            t_gear_clear_pending    (  )
+        THEN
+    THEN
+;
 
 \ handler for foot status messages
 \
@@ -56,6 +121,7 @@ DECIMAL
     t_gear_damage + @           ( 4id d d old-dam )
     <> IF 1 t_gear_changed +! THEN  ( 4id d )
     SWAP t_gear_damage + !      (  )
+    t_gear_check_grounded       (  )
 ;
 
 
@@ -113,8 +179,10 @@ DECIMAL
 
 \ Display damage and force values only
 : t_geat_display_values     ( -- )
+    CURSOR-HIDE
     t_gear_display_forces
     t_gear_display_damages
+    CURSOR-SHOW
     fms_park_cursor
 ;
 

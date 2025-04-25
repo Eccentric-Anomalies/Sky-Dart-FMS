@@ -17,5 +17,13 @@ VARIABLE t_diag_addr
 
 \ GEAR
 VARIABLE t_gear_addr
+VARIABLE t_gear_padsvc_grounded_notify
 
+\ gf is TRUE if ship is grounded, FALSE if aloft
+: t_gear_notify_grounded    ( gf -- )
+    \ insert references to functions to receive grounded state changes
+    DUP t_gear_padsvc_grounded_notify @ EXECUTE
+    \ ... more here - copy line above as necessary
+    DROP
+;
 
