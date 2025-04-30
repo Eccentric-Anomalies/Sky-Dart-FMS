@@ -18,6 +18,9 @@
 \  <RETURN
 \
 
+\ Constant resource value flag indicating "repair"
+0 2- CONSTANT T_PADSVC_REPAIR_F
+
 \ (0) Variable to hold addr of this task
 VARIABLE t_padsvc_addr
 
@@ -131,22 +134,29 @@ HEX
 : t_padsvc_prep_latlon      ( c r n -- n +n 0  )
     ROT ROT                 ( n c r )
     AT-XY                   ( n )
-    DUP 0> IF               ( n )
-        ."  "               ( n )
-    THEN                    ( n )
     DUP ABS 0               ( n +n 0 )
 ;
 
 \ Print latitude to two decimal places 
 : t_padsvc_print_lat        ( c r n -- )
     t_padsvc_prep_latlon    ( n +n 0 )
-    <# 7 HOLD # # [CHAR] . HOLD # # ROT SIGN #> TYPE
+    <# # # [CHAR] . HOLD # # #> TYPE ( n )
+    0< IF
+        ." S"
+    ELSE
+        ." N"
+    THEN
 ;
 
 \ Print longitude to two decimal places 
 : t_padsvc_print_lon        ( c r n -- )
     t_padsvc_prep_latlon    ( n +n 0 )
-    <# 7 HOLD # # [CHAR] . HOLD # # # ROT SIGN #> TYPE
+    <# # # [CHAR] . HOLD # # # #> TYPE   ( n )
+    0< IF
+        ." W"
+    ELSE
+        ." E"
+    THEN
 ;
 
 \ Print altitude in meters 
@@ -182,7 +192,7 @@ DECIMAL
     t_padsvc_active @ IF
         DECIMAL
         1 2 t_padsvc_name @ t_padsvc_print_3char    (  )
-        5 2 t_padsvc_lat @ t_padsvc_print_lat       (  )
+        6 2 t_padsvc_lat @ t_padsvc_print_lat       (  )
         12 2 t_padsvc_lon @ t_padsvc_print_lon      (  )
         20 2 t_padsvc_alt @ t_padsvc_print_alt      (  )
         5  3 t_padsvc_0nam @ t_padsvc_print_3char   (  )
@@ -259,10 +269,15 @@ DECIMAL
         SWAP @          ( addr l c r fc fr f v s )
         1 = IF          ( addr l c r fc fr f v )
             REVERSEV    ( addr l c r fc fr f v )
-        ELSE            ( addr l c r fc fr f v )
-            UNDERLINEV      ( addr l c r fc fr f v )
+            BLINKV
+        ELSE
+            UNDERLINEV
         THEN
-        0 <# # [CHAR] . HOLD # # #> TYPE    ( addr l c r fc fr f )
+        DUP T_PADSVC_REPAIR_F = IF  ( addr l c r fc fr f v )
+            DROP ." AVAL"           ( addr l c r fc fr f )
+        ELSE                        ( addr l c r fc fr f v )
+            0 <# # [CHAR] . HOLD # # #> TYPE    ( addr l c r fc fr f )
+        THEN
         NOMODEV         ( addr l c r fc fr f )
     THEN
     ROT ROT             ( addr l c r f fc fr )
@@ -292,11 +307,11 @@ DECIMAL
             t_padsvc_o2     S" O2     " 1 11  t_padsvc_print_rsrc
         S" KG"  23 6  1 1 ['] t_padsvc_lioh_key   t_padsvc_lioh_state   
             t_padsvc_lioh   S" LIOH   " 14 5  t_padsvc_print_rsrc
-        S" MT"  23 8  1 2 ['] t_padsvc_prop_key   t_padsvc_prop_state   
+        S" T"   24 8  1 2 ['] t_padsvc_prop_key   t_padsvc_prop_state   
             t_padsvc_prop   S" PROP   " 14 7  t_padsvc_print_rsrc
-        S" 1/0" 22 10 1 3 ['] t_padsvc_repair_key t_padsvc_repair_state 
+        S" "    21 10 1 3 ['] t_padsvc_repair_key t_padsvc_repair_state 
             t_padsvc_repair S" REPAIR " 14 9  t_padsvc_print_rsrc
-        S" MT"  23 12 1 4 ['] t_padsvc_spice_key  t_padsvc_spice_state  
+        S" T"   24 12 1 4 ['] t_padsvc_spice_key  t_padsvc_spice_state  
             t_padsvc_spice  S" MINED  " 14 11 t_padsvc_print_rsrc
         fms_park_cursor                             (  )
     THEN
@@ -326,7 +341,10 @@ HEX
         DROP t_padsvc_prop !    (  )
     ELSE DUP PADL_REPAIR = IF   ( v r )
         DROP                    ( v )
-        0A * t_padsvc_repair !  (  )
+        1 = IF                  (  )
+            T_PADSVC_REPAIR_F   ( f )
+            t_padsvc_repair !   (  )
+        THEN
     ELSE DUP PADL_SPICE = IF    ( v r )
         DROP t_padsvc_spice !   (  )
     ELSE 2DROP                  (  ) \ no matches
