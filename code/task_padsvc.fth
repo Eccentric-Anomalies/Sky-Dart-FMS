@@ -15,8 +15,8 @@
 \         KWH 
 \  O2     10.0  10.0  MINED
 \         L     MT  
-\  <RETURN
-\
+\  <RETURN       TOGGLE DIR
+\                SHIP < PAD
 
 \ Constant resource value flag indicating "repair"
 0 2- CONSTANT T_PADSVC_REPAIR_F
@@ -26,6 +26,9 @@ VARIABLE t_padsvc_addr
 
 \ task state
 VARIABLE t_padsvc_active
+
+\ transfer direction
+VARIABLE t_padsvc_direction
 
 \ pad info state
 VARIABLE t_padsvc_name
@@ -64,8 +67,11 @@ VARIABLE t_padsvc_3buff
 VARIABLE t_padsvc_menu_t
 VARIABLE t_padsvc_rsrcupd_t
 
-\ Initialize variables as needed
+\ Initialize active state
 FALSE t_padsvc_active !
+
+\ Initialize service direction
+PAD_TO_SHIP t_padsvc_direction !
 
 \ Display the pad service fixed text
 \
@@ -294,6 +300,7 @@ DECIMAL
 DECIMAL
 : t_padsvc_rsrcupd           ( -- )
     t_padsvc_active @ IF
+        CURSOR-HIDE
         DECIMAL
         \ unit, unit position, fkey position, fkey handler, state addr, 
         \   qty addr, qty name, name position
@@ -314,6 +321,7 @@ DECIMAL
         S" T"   24 12 1 4 ['] t_padsvc_spice_key  t_padsvc_spice_state  
             t_padsvc_spice  S" MINED  " 14 11 t_padsvc_print_rsrc
         fms_park_cursor                             (  )
+        CURSOR-SHOW
     THEN
 ;
 
@@ -411,7 +419,7 @@ DECIMAL
     ELSE DUP PADL_DONE = IF     ( v pm )
         2DROP                   (  )
         t_padsvc_update         (  )
-\ FIXME        t_padsvc_rsrcupd        (  )
+        t_padsvc_rsrcupd        (  )
     ELSE 2DROP                  (  )    \ no matches
     THEN    \ PADL_DONE
     THEN    \ PADL_PAD_1_DIST
@@ -435,6 +443,23 @@ DECIMAL
     THEN                (  )
 ;
 
+\ Update the current transfer direction display
+: t_padsvc_dirupd               ( -- )
+    20 13 AT-XY                             (  )
+    t_padsvc_direction @                    ( dir )
+    PAD_TO_SHIP = IF                        (  )
+        ." <"                               (  )
+    ELSE                                    (  )
+        ." >"                               (  )
+    THEN                                    (  )
+;
+
+\ Send the direction state 
+: t_padsvc_send_direction           ( -- )
+    t_padsvc_direction @            ( dir )
+    PORT_RSRC_DIRECTION OUT         (  )
+;
+
 \ Place a reference to the notification function
 ' t_padsvc_grounded_notify t_gear_padsvc_grounded_notify !
 
@@ -449,7 +474,16 @@ DECIMAL
     task_start          (  )
 ;
 
-
+: t_padsvc_change_direction     ( -- )
+    t_padsvc_direction @                    ( dir )
+    PAD_TO_SHIP = IF                        (  )
+        SHIP_TO_PAD t_padsvc_direction !    (  )
+    ELSE                                    (  )
+        PAD_TO_SHIP t_padsvc_direction !    (  )
+    THEN                                    (  )
+    t_padsvc_dirupd                         (  )
+    t_padsvc_send_direction                 (  )
+;
 
 \ (2) Allocate, clear, define and build the menu
 menu_create t_padsvc_menu
@@ -459,6 +493,7 @@ t_padsvc_menu t_padsvc_menu_t !
 
 : t_padsvc_menu_create
     ['] t_padsvc_return S" <RETURN" 0 0 t_padsvc_menu 0 5 menu_add_option
+    ['] t_padsvc_change_direction S" SHIP   PAD" 0 0 t_padsvc_menu 1 5 menu_add_option
 ;
 
 t_padsvc_menu_create
@@ -472,6 +507,8 @@ t_padsvc_menu_create
     t_padsvc_display_fixed_text      (  )
     t_padsvc_update                  (  )
     t_padsvc_rsrcupd                 (  )
+    t_padsvc_dirupd                  (  )
+    t_padsvc_send_direction          (  )
     fms_refresh_buffer_display       (  )
 ;
 
