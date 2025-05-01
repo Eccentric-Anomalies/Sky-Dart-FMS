@@ -1,7 +1,3 @@
-CR
-.( AMC Sky Dart System Software v0.0.2)
-CR
-
 \ To execute the Sky Dart system in USER SPACE, place sources in:
 \ <user>/AppData/Roaming/Eccentric Anomalies/Tungsten Moon
 \
