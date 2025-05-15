@@ -27,3 +27,8 @@ VARIABLE t_gear_padsvc_grounded_notify
     DROP
 ;
 
+\ PADSVC
+VARIABLE t_padsvc_addr
+
+\ PADSVC PROP
+VARIABLE t_padsvc_prop_addr

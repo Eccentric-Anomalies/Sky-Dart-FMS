@@ -178,7 +178,7 @@ DECIMAL
 
 
 \ Display damage and force values only
-: t_geat_display_values     ( -- )
+: t_gear_display_values     ( -- )
     CURSOR-HIDE
     t_gear_display_forces
     t_gear_display_damages
@@ -214,7 +214,7 @@ t_gear_menu_create
     t_gear_changed @            ( f )
     0<> IF                      (  )
         0 t_gear_changed !      (  )
-        t_geat_display_values   (  )
+        t_gear_display_values   (  )
     THEN
 ;
 
@@ -231,7 +231,7 @@ DECIMAL
     11 8 AT-XY 18 EMIT 18 EMIT 18 EMIT
     9 9  AT-XY ." /     \"
     9 10 AT-XY ." KN        KN"
-    t_geat_display_values       (  )
+    t_gear_display_values       (  )
     fms_refresh_buffer_display  (  )
 ;
 

@@ -78,6 +78,11 @@ VARIABLE menu_current
     FILL                        (  )
 ;
 
+\ Utility for printing a horizontal rule
+\
+: horizontal_rule                (  --  )
+    ." ------------------------"
+;
 
 \ Utility for getting address of an item xt
 \

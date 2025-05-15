@@ -25,6 +25,7 @@ INCLUDE task_globals.fth
 \ UI/menu tasks below: menu leaves first, root last
 \ Levels seperated by ----
 INCLUDE task_gear.fth
+INCLUDE task_padsvc_prop.fth
 \ ----
 INCLUDE task_chron.fth
 INCLUDE task_padsvc.fth

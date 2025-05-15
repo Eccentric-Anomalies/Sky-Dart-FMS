@@ -3,28 +3,26 @@
 \ Definition of pad services UI task
 \
 
+\  SERVICES AT PAD ID: 0:0
+\  POSITION: 00.00N000.00E
+\  ALTITUDE: 0000 M
+\  ------------------------
+\  NEARBY: ID/BEARING/DIST
+\  0:1  000.0d   000.00 KM
+\  0:2  000.0d   000.00 KM
+\  ------------------------
+\  <LIFE SUPPORT    REPAIR>
+\  
+\  <BATTERY     PROPELLENT>
 \
-\  xxx -90.00°-180.00°9999M
-\  TO> yyy 359.9° 001.00 KM
-\  TO> zzz 359.9° 9999.0 KM
-\  FOOD   10.0  10.0   LIOH
-\         KG    KG  
-\  WATER  10.0  10.0   PROP
-\         L     MT  
-\  ELEC   10.0   YES REPAIR
-\         KWH 
-\  O2     10.0  10.0  MINED
-\         L     MT  
-\  <RETURN       TOGGLE DIR
-\                SHIP < PAD
+\  <RETURN           MINED>
+\
+
 
 \ Constant resource value flag indicating "repair"
 0 2- CONSTANT T_PADSVC_REPAIR_F
 
-\ (0) Variable to hold addr of this task
-VARIABLE t_padsvc_addr
-
-\ task state
+\ task state - set to false when leaving the screen
 VARIABLE t_padsvc_active
 
 \ transfer direction
@@ -76,10 +74,14 @@ PAD_TO_SHIP t_padsvc_direction !
 \ Display the pad service fixed text
 \
 : t_padsvc_display_fixed_text ( -- )
-    3 1 AT-XY   ." LANDING PAD SERVICES"
-    1 3 AT-XY   ." TO> "
-    1 4 AT-XY   ." TO> "
+    1 1 AT-XY   ." SERVICES AT PAD ID:"
+    1 2 AT-XY   ." POSITION:"
+    1 3 AT-XY   ." ALTITUDE:"
+    1 4 AT-XY   horizontal_rule
+    1 5 AT-XY   ." NEARBY: ID/BEARING/DIST"
+    1 8 AT-XY   horizontal_rule
 ;
+
 
 \ Erase the state variables
 \
@@ -197,136 +199,47 @@ DECIMAL
 : t_padsvc_update           ( -- )
     t_padsvc_active @ IF
         DECIMAL
-        1 2 t_padsvc_name @ t_padsvc_print_3char    (  )
-        6 2 t_padsvc_lat @ t_padsvc_print_lat       (  )
-        12 2 t_padsvc_lon @ t_padsvc_print_lon      (  )
-        20 2 t_padsvc_alt @ t_padsvc_print_alt      (  )
-        5  3 t_padsvc_0nam @ t_padsvc_print_3char   (  )
-        9  3 t_padsvc_0dir @ t_padsvc_print_dir     (  )
-        16 3 t_padsvc_0dist @ t_padsvc_print_dist   (  )
-        5  4 t_padsvc_1nam @ t_padsvc_print_3char   (  )
-        9  4 t_padsvc_1dir @ t_padsvc_print_dir     (  )
-        16 4 t_padsvc_1dist @ t_padsvc_print_dist   (  )
+        21 1 t_padsvc_name @ t_padsvc_print_3char   (  )
+        11 2 t_padsvc_lat @ t_padsvc_print_lat      (  )
+        17 2 t_padsvc_lon @ t_padsvc_print_lon      (  )
+        11 3 t_padsvc_alt @ t_padsvc_print_alt      (  )
+        2  6 t_padsvc_0nam @ t_padsvc_print_3char   (  )
+        7  6 t_padsvc_0dir @ t_padsvc_print_dir     (  )
+        15 6 t_padsvc_0dist @ t_padsvc_print_dist   (  )
+        2  7 t_padsvc_1nam @ t_padsvc_print_3char   (  )
+        7  7 t_padsvc_1dir @ t_padsvc_print_dir     (  )
+        15 7 t_padsvc_1dist @ t_padsvc_print_dist   (  )
         fms_park_cursor                             (  )
     THEN
 ;
 
-\ Function key handlers 
-\
-\ Generic handler takes port ID, and state address,
-\ toggles the state and sends it to the port
-\ update the resource display afterwards
-: t_padsvc_state_toggle     ( p saddr -- )
-    DUP                         ( p saddr saddr )
-    @                           ( p saddr s )
-    1 = IF                      ( p saddr )
-        0                       ( p saddr ns )
-    ELSE                        ( p saddr )
-        1                       ( p saddr ns )
-    THEN                        ( p saddr ns )
-    DUP                         ( p saddr ns ns )
-    ROT                         ( p ns ns saddr )
-    !                           ( p ns )
-    SWAP                        ( ns p )
-    OUT                         (  )
-    t_padsvc_rsrcupd_t @        ( faddr )
-    EXECUTE                     (  )
+\ Handle propellent function key
+: t_padsvc_prophandler          ( -- )
+    FALSE t_padsvc_active !
+    t_padsvc_addr @ task_padsvc_prop task_start
 ;
 
-: t_padsvc_food_key
-;
-
-: t_padsvc_water_key
-;
-
-: t_padsvc_elec_key
-;
-
-: t_padsvc_o2_key
-;
-
-: t_padsvc_lioh_key
-;
-
-: t_padsvc_prop_key             ( -- )
-    PORT_PROP_XFER_STATE t_padsvc_prop_state t_padsvc_state_toggle
-;
-
-: t_padsvc_repair_key           ( -- )
-    PORT_REPAIR_XFER_STATE t_padsvc_repair_state t_padsvc_state_toggle
-;
-
-: t_padsvc_spice_key
-;
-
-
-
-\ Display a single potentially available resource 
-\    units text, units c r, fkey c r, fkey xt, vaddr, staddr, label, label c r 
-: t_padsvc_print_rsrc   ( addr l c r fc fr f sa va addr l c r -- )
-    AT-XY               ( addr l c r fc fr f sa va addr l )
-    TYPE                ( addr l c r fc fr f sa va )
-    @                   ( addr l c r fc fr f sa v )
-    DUP 0 1- = IF       ( addr l c r fc fr f sa v ) 
-        ." ----" 2DROP  ( addr l c r fc fr f )
-        DROP 0          ( addr l c r fc fr xt=0 )
+\ Display a menu option for propellent if available
+: t_padsvc_propupd              ( -- )
+    t_padsvc_prop @             ( v )
+    0 1- <> IF                  (  )
+        ['] t_padsvc_prophandler S" PROPELLENT>" 
     ELSE
-        \ display in bold, assign the function key
-        SWAP @          ( addr l c r fc fr f v s )
-        1 = IF          ( addr l c r fc fr f v )
-            REVERSEV    ( addr l c r fc fr f v )
-            BLINKV
-        ELSE
-            UNDERLINEV
-        THEN
-        DUP T_PADSVC_REPAIR_F = IF  ( addr l c r fc fr f v )
-            DROP ." AVAL"           ( addr l c r fc fr f )
-        ELSE                        ( addr l c r fc fr f v )
-            0 <# # [CHAR] . HOLD # # #> TYPE    ( addr l c r fc fr f )
-        THEN
-        NOMODEV         ( addr l c r fc fr f )
+        0 S"            "
     THEN
-    ROT ROT             ( addr l c r f fc fr )
-    t_padsvc_menu_t @   ( addr l c r f fc fr m )
-    ROT ROT             ( addr l c r f m fc fr )
-    menu_set_item_xt    ( addr l c r )
-    AT-XY TYPE          (  )
+    0 0 t_padsvc_menu_t @ 1 5 menu_add_option
 ;
 
-
-
-\ Display all of the resource data for the pad (if menu active)
-\
-DECIMAL
-: t_padsvc_rsrcupd           ( -- )
+\ Display the menu options for transferring resources
+: t_padsvc_rsrcupd              ( -- )
     t_padsvc_active @ IF
         CURSOR-HIDE
-        DECIMAL
-        \ unit, unit position, fkey position, fkey handler, state addr, 
-        \   qty addr, qty name, name position
-        S" KG"  10 6  0 1 ['] t_padsvc_food_key   t_padsvc_food_state   
-            t_padsvc_food   S" FOOD   " 1 5   t_padsvc_print_rsrc
-        S" L"   11 8  0 2 ['] t_padsvc_water_key  t_padsvc_water_state  
-            t_padsvc_water  S" WATER  " 1 7   t_padsvc_print_rsrc
-        S" KWH" 9 10  0 3 ['] t_padsvc_elec_key   t_padsvc_elec_state   
-            t_padsvc_elec   S" ELEC   " 1 9   t_padsvc_print_rsrc
-        S" L"   11 12 0 4 ['] t_padsvc_o2_key     t_padsvc_o2_state     
-            t_padsvc_o2     S" O2     " 1 11  t_padsvc_print_rsrc
-        S" KG"  23 6  1 1 ['] t_padsvc_lioh_key   t_padsvc_lioh_state   
-            t_padsvc_lioh   S" LIOH   " 14 5  t_padsvc_print_rsrc
-        S" T"   24 8  1 2 ['] t_padsvc_prop_key   t_padsvc_prop_state   
-            t_padsvc_prop   S" PROP   " 14 7  t_padsvc_print_rsrc
-        S" "    21 10 1 3 ['] t_padsvc_repair_key t_padsvc_repair_state 
-            t_padsvc_repair S" REPAIR " 14 9  t_padsvc_print_rsrc
-        S" T"   24 12 1 4 ['] t_padsvc_spice_key  t_padsvc_spice_state  
-            t_padsvc_spice  S" MINED  " 14 11 t_padsvc_print_rsrc
-        fms_park_cursor                             (  )
+        t_padsvc_propupd
+        t_padsvc_menu_t @ menu_show
+        fms_park_cursor
         CURSOR-SHOW
     THEN
 ;
-
-\ preserve a reference to it
-' t_padsvc_rsrcupd t_padsvc_rsrcupd_t !
 
 \ handler for resource qty message: | rsrc | v hi | v lo |
 \
@@ -443,17 +356,6 @@ DECIMAL
     THEN                (  )
 ;
 
-\ Update the current transfer direction display
-: t_padsvc_dirupd               ( -- )
-    20 13 AT-XY                             (  )
-    t_padsvc_direction @                    ( dir )
-    PAD_TO_SHIP = IF                        (  )
-        ." <"                               (  )
-    ELSE                                    (  )
-        ." >"                               (  )
-    THEN                                    (  )
-;
-
 \ Send the direction state 
 : t_padsvc_send_direction           ( -- )
     t_padsvc_direction @            ( dir )
@@ -474,16 +376,6 @@ DECIMAL
     task_start          (  )
 ;
 
-: t_padsvc_change_direction     ( -- )
-    t_padsvc_direction @                    ( dir )
-    PAD_TO_SHIP = IF                        (  )
-        SHIP_TO_PAD t_padsvc_direction !    (  )
-    ELSE                                    (  )
-        PAD_TO_SHIP t_padsvc_direction !    (  )
-    THEN                                    (  )
-    t_padsvc_dirupd                         (  )
-    t_padsvc_send_direction                 (  )
-;
 
 \ (2) Allocate, clear, define and build the menu
 menu_create t_padsvc_menu
@@ -493,7 +385,6 @@ t_padsvc_menu t_padsvc_menu_t !
 
 : t_padsvc_menu_create
     ['] t_padsvc_return S" <RETURN" 0 0 t_padsvc_menu 0 5 menu_add_option
-    ['] t_padsvc_change_direction S" SHIP   PAD" 0 0 t_padsvc_menu 1 5 menu_add_option
 ;
 
 t_padsvc_menu_create
@@ -507,7 +398,7 @@ t_padsvc_menu_create
     t_padsvc_display_fixed_text      (  )
     t_padsvc_update                  (  )
     t_padsvc_rsrcupd                 (  )
-    t_padsvc_dirupd                  (  )
+    \ t_padsvc_dirupd                  (  ) FIXME
     t_padsvc_send_direction          (  )
     fms_refresh_buffer_display       (  )
 ;
