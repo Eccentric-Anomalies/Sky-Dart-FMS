@@ -45,7 +45,6 @@ VARIABLE t_padsvc_water \ liters times 10
 VARIABLE t_padsvc_elec  \ kwh times 10
 VARIABLE t_padsvc_o2    \ liters times 10
 VARIABLE t_padsvc_lioh  \ kg times 10
-VARIABLE t_padsvc_prop  \ kg / 100
 VARIABLE t_padsvc_repair    \ 10 or 0
 VARIABLE t_padsvc_spice \ kg / 100
 \ resource transfer state 1 = transferring 0 = not
@@ -54,7 +53,6 @@ VARIABLE t_padsvc_water_state
 VARIABLE t_padsvc_elec_state
 VARIABLE t_padsvc_o2_state
 VARIABLE t_padsvc_lioh_state
-VARIABLE t_padsvc_prop_state
 VARIABLE t_padsvc_repair_state
 VARIABLE t_padsvc_spice_state
 
@@ -111,13 +109,12 @@ HEX
     t_padsvc_prop !
     t_padsvc_repair !
     t_padsvc_spice !
-    0 DUP 2DUP 2DUP 2DUP
+    0 DUP 2DUP 2DUP DUP
     t_padsvc_food_state !
     t_padsvc_water_state !
     t_padsvc_elec_state !
     t_padsvc_o2_state !
     t_padsvc_lioh_state !
-    t_padsvc_prop_state !
     t_padsvc_repair_state !
     t_padsvc_spice_state !
 ;
@@ -350,10 +347,13 @@ DECIMAL
 
 \ Notification handler for ground state change
 : t_padsvc_grounded_notify  ( gf -- )
-    NOT IF              (  )
+    DUP                    ( gf gf )
+    NOT IF              ( gf )
         t_padsvc_erase_state
         t_padsvc_rsrcupd
-    THEN                (  )
+    THEN                ( gf )
+    DUP t_padsvc_prop_grounded    ( gf )
+    DROP                (  )
 ;
 
 \ Send the direction state 

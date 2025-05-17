@@ -199,10 +199,10 @@ t_chron_menu menu_clear
 
 : t_chron_menu_create
     ['] t_chron_return S" <RETURN" 0 0 t_chron_menu 0 5 menu_add_option
-    ['] t_chron_set S" SET" 0 0 t_chron_menu 1 2 menu_add_option
-    ['] t_chron_reset S" RESET" 0 0 t_chron_menu 1 3 menu_add_option
-    ['] t_chron_start_up S" UP/ST" 0 0 t_chron_menu 1 4 menu_add_option
-    ['] t_chron_start_down S" DN/ST" 0 0 t_chron_menu 1 5 menu_add_option
+    ['] t_chron_set S" SET-" 0 0 t_chron_menu 1 2 menu_add_option
+    ['] t_chron_reset S" RESET-" 0 0 t_chron_menu 1 3 menu_add_option
+    ['] t_chron_start_up S" UP/ST-" 0 0 t_chron_menu 1 4 menu_add_option
+    ['] t_chron_start_down S" DN/ST-" 0 0 t_chron_menu 1 5 menu_add_option
 ;
 
 t_chron_menu_create

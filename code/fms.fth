@@ -30,6 +30,19 @@ fms_num_buffer fms_whole !
     NUMERIC_DISPLAY_Y AT-XY
 ;
 
+\ Display n-digit integer x at cx, cy
+: fms_ndigit                ( n x cx cy -- )
+    AT-XY                   ( n x )
+    0                       ( n d )
+    <#                      ( n d )
+    ROT                     ( d n )
+    0                       ( d n 0 )
+    DO                      ( d )
+        #                   ( d )
+    LOOP                    ( d )
+    #> TYPE                 (  )
+;
+
 \ Display length blanks beginning at screen coordinates x, y
 \
 : erase_display_line                    ( length x y -- )
