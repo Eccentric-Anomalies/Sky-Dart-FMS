@@ -32,10 +32,13 @@ VARIABLE t_padsvc_prop  \ kg / 100
 VARIABLE t_padsvc_prop_state
 \ Prop task is active
 VARIABLE t_padsvc_prop_active
+\ Prop transfer direction
+VARIABLE t_padsvc_prop_dir
 
 
 \ Initialize
 FALSE t_padsvc_prop_active !
+PAD_TO_SHIP t_padsvc_prop_dir !
 
 \ Stop the propellent transfer
 \ Corresponding code must be remove from task_padsvc.fth
@@ -44,10 +47,36 @@ FALSE t_padsvc_prop_active !
     FALSE t_padsvc_prop_state !
 ;
 
+\ Check to see if qty is within min/max bounds
+: t_padsvc_prop_in_limits   ( -- f )
+    PORT_PROP_QTY IN        ( qty )
+    t_padsvc_prop_dir @     ( qty dir )
+    PAD_TO_SHIP = IF        ( qty )   \ to ship
+        t_padsvc_prop_max @ ( qty max )
+        <                   ( qty<max )
+    ELSE                    ( qty )
+        t_padsvc_prop_min @ ( qty min )
+        >                   ( qty>min )
+    THEN                    ( f )
+;
+
+\ Check to see if transfer must be automatically stopped
+: t_padsvc_prop_check_auto_stop ( -- )
+    t_padsvc_prop_state @  IF   (  )    \ transferring
+        t_padsvc_prop_in_limits ( f )
+        NOT IF                  (  )
+            t_padsvc_prop_stop_xfer
+        THEN
+    THEN
+;
+
 \ Start the propellent transfer
 : t_padsvc_prop_start_xfer      ( -- )
-    1 PORT_PROP_XFER_STATE OUT  (  )
-    TRUE t_padsvc_prop_state !
+    t_padsvc_prop_in_limits     ( f )
+    IF
+        1 PORT_PROP_XFER_STATE OUT  (  )
+        TRUE t_padsvc_prop_state !
+    THEN
 ;
 
 
@@ -140,14 +169,16 @@ t_padsvc_prop_menu menu_clear
 ;
 
 : t_padsvc_prop_load            ( -- )
-    PAD_TO_SHIP                 ( x )
-    PORT_RSRC_DIRECTION OUT     (  )
+    PAD_TO_SHIP DUP             ( x x )
+    PORT_RSRC_DIRECTION OUT     ( x )
+    t_padsvc_prop_dir !         (  )
     t_padsvc_prop_start_xfer    (  )
 ;
 
 : t_padsvc_prop_unload          ( -- )
-    SHIP_TO_PAD                 ( x )
-    PORT_RSRC_DIRECTION OUT     (  )
+    SHIP_TO_PAD DUP             ( x x )
+    PORT_RSRC_DIRECTION OUT     ( x )
+    t_padsvc_prop_dir !         (  )
     t_padsvc_prop_start_xfer    (  )
 ;
 
@@ -189,8 +220,9 @@ t_padsvc_prop_menu_create
 : t_padsvc_prop_poll        ( -- )
     CURSOR-HIDE
     t_padsvc_prop_disp_qty
-    CURSOR-SHOW
     fms_park_cursor
+    CURSOR-SHOW
+    t_padsvc_prop_check_auto_stop
 ;
 
 \ (7) Create the task definition: task_padsvc_prop
