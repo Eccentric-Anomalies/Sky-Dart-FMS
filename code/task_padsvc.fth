@@ -53,7 +53,6 @@ VARIABLE t_padsvc_water_state
 VARIABLE t_padsvc_elec_state
 VARIABLE t_padsvc_o2_state
 VARIABLE t_padsvc_lioh_state
-VARIABLE t_padsvc_repair_state
 VARIABLE t_padsvc_spice_state
 
 VARIABLE t_padsvc_3buff
@@ -109,13 +108,12 @@ HEX
     t_padsvc_prop !
     t_padsvc_repair !
     t_padsvc_spice !
-    0 DUP 2DUP 2DUP DUP
+    0 DUP 2DUP 2DUP
     t_padsvc_food_state !
     t_padsvc_water_state !
     t_padsvc_elec_state !
     t_padsvc_o2_state !
     t_padsvc_lioh_state !
-    t_padsvc_repair_state !
     t_padsvc_spice_state !
 ;
 
@@ -210,11 +208,31 @@ DECIMAL
     THEN
 ;
 
+\ Handle repair function key
+: t_padsvc_rephandler          ( -- )
+    FALSE t_padsvc_active !
+    t_padsvc_addr @ task_padsvc_gear task_start
+;
+
+
 \ Handle propellent function key
 : t_padsvc_prophandler          ( -- )
     FALSE t_padsvc_active !
     t_padsvc_addr @ task_padsvc_prop task_start
 ;
+
+\ Display a menu option for repair if available
+: t_padsvc_repairupd              ( -- )
+    t_padsvc_repair @             ( v )
+    0 1- <> IF                  (  )
+        ['] t_padsvc_rephandler S" REPAIR>" 
+    ELSE
+        0 S"            "
+    THEN
+    0 0 t_padsvc_menu_t @ 1 4 menu_add_option
+;
+
+
 
 \ Display a menu option for propellent if available
 : t_padsvc_propupd              ( -- )
@@ -232,6 +250,7 @@ DECIMAL
     t_padsvc_active @ IF
         CURSOR-HIDE
         t_padsvc_propupd
+        t_padsvc_repairupd
         t_padsvc_menu_t @ menu_show
         fms_park_cursor
         CURSOR-SHOW
