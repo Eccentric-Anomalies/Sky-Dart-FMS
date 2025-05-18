@@ -372,6 +372,7 @@ DECIMAL
         t_padsvc_rsrcupd
     THEN                ( gf )
     DUP t_padsvc_prop_grounded    ( gf )
+    DUP t_padsvc_gear_grounded    ( gf )
     DROP                (  )
 ;
 
