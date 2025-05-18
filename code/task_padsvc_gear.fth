@@ -32,6 +32,7 @@ FALSE t_padsvc_gear_active !
 : t_padsvc_gear_stop        ( -- )
     0 PORT_REPAIR_XFER_STATE OUT  (  )
     FALSE t_padsvc_gear_state !
+    FALSE t_gear_warning_given !
 ;
 
 \ Display a blank health bar

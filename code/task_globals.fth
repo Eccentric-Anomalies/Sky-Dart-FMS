@@ -18,6 +18,7 @@ VARIABLE t_diag_addr
 \ GEAR
 VARIABLE t_gear_addr
 VARIABLE t_gear_padsvc_grounded_notify
+VARIABLE t_gear_warning_given
 
 \ gf is TRUE if ship is grounded, FALSE if aloft
 : t_gear_notify_grounded    ( gf -- )

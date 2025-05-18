@@ -42,6 +42,9 @@ FALSE t_gear_grounded !
 FALSE t_gear_pending !
 FALSE t_gear_pending_grounded !
 
+\ Initialize global
+FALSE t_gear_warning_given !
+
 
 \ Pending timer expired
 : t_gear_timer_expired          ( -- )
@@ -99,6 +102,24 @@ FALSE t_gear_pending_grounded !
     THEN
 ;
 
+
+\ Handle warning light notification
+: t_gear_check_warning            ( -- )
+    t_gear_warning_given @         ( f )
+    NOT IF
+        4 0 DO
+            I CELLS                 ( offs )
+            t_gear_damage + @       ( dmg )
+            0<>                     ( f )
+            t_gear_warning_given @  ( f f )
+            NOT AND IF              (  )
+                1 PORT_WARNING OUT  (  )
+                TRUE t_gear_warning_given !
+            THEN
+        LOOP                    
+    THEN
+;
+
 \ handler for foot status messages
 \
 DECIMAL
@@ -122,6 +143,7 @@ DECIMAL
     <> IF 1 t_gear_changed +! THEN  ( 4id d )
     SWAP t_gear_damage + !      (  )
     t_gear_check_grounded       (  )
+    t_gear_check_warning        (  )
 ;
 
 
