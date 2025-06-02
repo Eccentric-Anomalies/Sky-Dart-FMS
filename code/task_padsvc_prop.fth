@@ -127,18 +127,6 @@ DECIMAL
     1 10 AT-XY   horizontal_rule
 ;
 
-\ Receive notification of grounding state
-: t_padsvc_prop_grounded        ( gf -- )
-    NOT                         ( !gf )
-    t_padsvc_prop_active @      ( !gf s )
-    t_padsvc_prop_state @       ( !gf s s )
-    AND                         ( !gf f )
-    AND                         ( f )
-    IF                          (  )
-        t_padsvc_prop_stop_xfer (  )
-    THEN                        (  )
-;
-
 
 \ (1) Allocate and clear a menu structure: t_padsvc_prop_menu
 menu_create t_padsvc_prop_menu
@@ -228,4 +216,14 @@ t_padsvc_prop_menu_create
 \ (7) Create the task definition: task_padsvc_prop
     ' t_padsvc_prop_poll ' t_padsvc_prop_init task_create task_padsvc_prop
     task_padsvc_prop t_padsvc_prop_addr !
+;
+
+\ Receive notification of grounding state
+: t_padsvc_prop_grounded        ( gf -- )
+    NOT                         ( !gf )
+    t_padsvc_prop_active @      ( !gf s )
+    AND                         ( f )
+    IF                          (  )
+        t_padsvc_prop_return    (  )
+    THEN                        (  )
 ;

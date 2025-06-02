@@ -55,19 +55,6 @@ DECIMAL
     1 9 AT-XY   horizontal_rule
 ;
 
-\ Receive notification of grounding state
-: t_padsvc_gear_grounded        ( gf -- )
-    NOT                         ( !gf )
-    t_padsvc_gear_active @      ( !gf s )
-    t_padsvc_gear_state @       ( !gf s s )
-    AND                         ( !gf f )
-    AND                         ( f )
-    IF                          (  )
-        t_padsvc_gear_stop      (  )
-    THEN                        (  )
-;
-
-
 
 \ Display the health bars
 : t_padsvc_gear_disp_health         ( -- )
@@ -85,8 +72,9 @@ DECIMAL
         SPACES                      (  )
     LOOP                            (  )
     t_padsvc_gear_health @          ( h )
-    0= t_padsvc_gear_state AND IF   (  )
+    0= t_padsvc_gear_state @ AND IF (  )
         t_padsvc_gear_stop          (  )
+        9 10 AT-XY ." *FIXED*"
     THEN                            (  )
 ;
 
@@ -97,8 +85,6 @@ DECIMAL
         BLINKV
         ." WORKING"
         NOMODEV
-    ELSE
-        ."        "
     THEN                            (  )
 ;
 
@@ -157,3 +143,14 @@ t_padsvc_gear_menu_create
     ' t_padsvc_gear_poll ' t_padsvc_gear_init task_create task_padsvc_gear
     task_padsvc_gear t_padsvc_gear_addr !
 ;
+
+\ Receive notification of grounding state
+: t_padsvc_gear_grounded        ( gf -- )
+    NOT                         ( !gf )
+    t_padsvc_gear_active @      ( !gf s )
+    AND                         ( f )
+    IF                          (  )
+        t_padsvc_gear_return    (  )
+    THEN                        (  )
+;
+
