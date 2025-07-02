@@ -84,6 +84,12 @@ VARIABLE menu_current
     ." ------------------------"
 ;
 
+\ Utility for printing a horizontal double rule
+\
+: horizontal_double_rule                (  --  )
+    ." ========================"
+;
+
 \ Utility for getting address of an item xt
 \
 : menu_get_item_xt_addr         ( addr col row -- addr )

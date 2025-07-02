@@ -262,7 +262,7 @@ DECIMAL
 task_gear t_gear_addr !
 
 
-\ Listen for foot status messages (do not queue duplicate messages)
+\ Listen for foot status messages (DO queue duplicate messages)
 PORT_FOOT_STATUS 0 LISTEN t_gear_rcv_foot
 
 DECIMAL

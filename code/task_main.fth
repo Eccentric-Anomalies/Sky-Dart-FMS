@@ -5,7 +5,7 @@
 \  |           |          |
 \         SKY-DART FMS
 \            v1.0.0
-\  >MSGS             >DIAG
+\  >MESSAGES          >DIAG
 \
 \  >CHRON 
 \
@@ -34,13 +34,18 @@ task_main_menu menu_clear
 ;
 
 : task_main_diag
-    task_main_addr @ task_diag task_start
+    task_main_addr @ task_diag task_start    
+;
+
+: task_main_messages
+    task_main_addr @ task_msg task_start
 ;
 
 \ (3) Define the menu
 : task_main_menu_create
-    ['] task_main_chron S" >CHRON" 0 0 task_main_menu 0 0 menu_add_option
-    ['] task_main_padsvc S" >PADSVC" 0 0 task_main_menu 0 1 menu_add_option
+    ['] task_main_messages S" >MESSAGES" 0 0 task_main_menu 0 0 menu_add_option
+    ['] task_main_chron S" >CHRON" 0 0 task_main_menu 0 1 menu_add_option
+    ['] task_main_padsvc S" >PADSVC" 0 0 task_main_menu 0 2 menu_add_option
     ['] task_main_diag S" >DIAG" 0 0 task_main_menu 1 0 menu_add_option
 ;
 

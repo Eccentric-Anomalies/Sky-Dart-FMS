@@ -31,6 +31,7 @@ INCLUDE task_padsvc_gear.fth
 INCLUDE task_chron.fth
 INCLUDE task_padsvc.fth
 INCLUDE task_diag.fth
+INCLUDE task_msg.fth
 \ ----
 INCLUDE task_main.fth
 \ Simple IO Processing

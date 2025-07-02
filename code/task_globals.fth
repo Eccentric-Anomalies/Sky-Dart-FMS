@@ -36,3 +36,6 @@ VARIABLE t_padsvc_prop_addr
 
 \ PADSVC GEAR
 VARIABLE t_padsvc_gear_addr
+
+\ MSG
+VARIABLE t_msg_addr
