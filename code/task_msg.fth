@@ -58,8 +58,8 @@ t_msg_menu menu_clear
 \ (3) Define the menu
 : t_msg_menu_create
     ['] t_msg_return S" <RETURN" 0 0 t_msg_menu 0 5 menu_add_option
-    ['] t_msg_prev S" PREV" 0 0 t_msg_menu 0 4 menu_add_option
-    ['] t_msg_next S" NEXT" 0 0 t_msg_menu 1 4 menu_add_option
+    ['] t_msg_prev S" -PREV" 0 0 t_msg_menu 0 4 menu_add_option
+    ['] t_msg_next S" NEXT-" 0 0 t_msg_menu 1 4 menu_add_option
 ;
 
 \ (4) Build the menu
