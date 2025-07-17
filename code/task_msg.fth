@@ -22,16 +22,87 @@
 \ task state
 VARIABLE t_msg_active
 
+\ message reception state machine states
+0 CONSTANT T_MSG_IDLE
+1 CONSTANT T_MSG_DATA
+VARIABLE t_msg_state
+VARIABLE t_msg_count
+
 \ Initialize variables as needed
 FALSE t_msg_active !
+T_MSG_IDLE t_msg_state !
+0 t_msg_count !
 
 \ Set up storage for received messages
+DECIMAL
+100 CONSTANT T_MSG_QTY_MAX
+2 CELLS CONSTANT T_OVR_SZ     \ size of overhead block, bytes
+LEN_MSG_MAX T_OVR_SZ + CONSTANT T_MSG_LEN_BLK  \ msg length + overhead
+1 CONSTANT T_OVR_NXT    \ overhead block, offset to next pointer
+2 CONSTANT T_OVR_PRV    \ overhead block, offset to prev pointer
+3 CONSTANT T_OVR_ALLOC  \ overhead block, offset to allocated flag (1 = allocated)
+4 CONSTANT T_OVR_TSTAMP \ overhead block, offset to timestamp word
 
-\ handler for input characters
+\ allocate a static message store and clear it
+CREATE t_msg_store
+T_MSG_LEN_BLK T_MSG_QTY_MAX * DUP ALLOT ( l )
+ALIGN                                   ( l )
+t_msg_store SWAP                        ( c-addr l )
+ERASE
+
+VARIABLE t_msg_free     \ index of first free block or -1 for none
+VARIABLE t_msg_used     \ index of first used block or -1 for none
+VARIABLE t_msg_last_free \ index of last free block or -1 for none
+VARIABLE t_msg_last_used \ index of last used block or -1 for none
+
+\ initialize the message store
+: t_msg_init_store      ( -- )
+    0 t_msg_free !          (  )
+    -1 t_msg_used !         (  )
+    T_MSG_QTY_MAX 1-        ( l )
+    t_msg_last_free !       (  )
+    -1 t_msg_last_used !    (  )
+    T_MSG_QTY_MAX 0 DO      (  )
+        I T_MSG_LEN_BLK *   ( offs )
+        t_msg_store +       ( a )
+        DUP                 ( a a )
+        T_OVR_PRV +         ( a prv-ptr )
+        I 1- SWAP C!        ( a )
+        T_OVR_NXT +         ( nxt-ptr )
+        I 1+                ( nxt-ptr n )
+        T_MSG_QTY_MAX <> IF ( nxt-ptr )
+            I 1+ SWAP C!    (  )
+        ELSE                ( nxt-ptr )
+            -1 SWAP C!      (  )
+        THEN
+    LOOP
+;
+
+\ handler for input message data
 \
 DECIMAL
-: t_msg_rcv               ( n -- )
-    EMIT
+: t_msg_rcv                 ( n -- )
+    t_msg_state @           ( n s )
+    T_MSG_IDLE = IF         ( n )
+        DUP                 ( n n )
+        MASK_MSG_LEN INVERT ( n n m )
+        AND 0=              ( n f )
+        SWAP                ( f n )
+        OFS_MSG_LEN 8 *     ( f n s )
+        RSHIFT              ( f l )
+        DUP                 ( f l l )
+        LEN_MSG_MAX         ( f l l max )
+        > NOT               ( f l f )
+        ROT                 ( l f f )
+        AND                 ( l f )
+        IF                  ( l )   \ valid 
+            t_msg_count !   (  )
+            T_MSG_DATA t_msg_state ! (  )
+        ELSE                (  )   \ length packet invalid
+            DROP            (  )    \ remain in MASK_MSG_LEN
+        THEN
+    ELSE                    ( n )   \ T_MSG_DATA 
+    THEN
 ;
 
 
@@ -68,6 +139,7 @@ t_msg_menu_create
 \ (5) t_msg init function
 DECIMAL
 : t_msg_init                 ( -- )
+    t_msg_init_store            (  )
     PAGE
     TRUE t_msg_active !         (  )
     t_msg_menu menu_show        (  )
@@ -88,6 +160,6 @@ task_msg t_msg_addr !
 
 
 \ Listen for characters (DO queue duplicate messages)
-PORT_MESSAGE 0 LISTEN t_msg_rcv
+PORT_MSG 0 LISTEN t_msg_rcv
 
 DECIMAL
