@@ -50,15 +50,22 @@ ALIGN                                   ( l )
 t_msg_store SWAP                        ( c-addr l )
 ERASE
 
-VARIABLE t_msg_free     \ index of first free block or -1 for none
-VARIABLE t_msg_used     \ index of first used block or -1 for none
-VARIABLE t_msg_last_free \ index of last free block or -1 for none
-VARIABLE t_msg_last_used \ index of last used block or -1 for none
+\ Queue definition blocks - must appear in this order
+\ Free message queue block
+VARIABLE t_msg_free         \ index of first free block or -1 for none
+VARIABLE t_msg_last_free    \ index of last free block or -1 for none
+VARIABLE t_msg_free_qty     \ qty of blocks in queue
+\ Used message queue block
+VARIABLE t_msg_used         \ index of first used block or -1 for none
+VARIABLE t_msg_last_used    \ index of last used block or -1 for none
+VARIABLE t_msg_used_qty     \ qty of blocks in queue
 
 \ initialize the message store
 : t_msg_init_store      ( -- )
     0 t_msg_free !          (  )
+    T_MSG_QTY_MAX t_msg_free_qty !  (  )
     -1 t_msg_used !         (  )
+    0 t_msg_used_qty !      (  )
     T_MSG_QTY_MAX 1-        ( l )
     t_msg_last_free !       (  )
     -1 t_msg_last_used !    (  )
@@ -78,6 +85,61 @@ VARIABLE t_msg_last_used \ index of last used block or -1 for none
     LOOP
 ;
 
+\ Queue utilities
+
+\ get queue control block from index
+: t_msg_q_ctrl              ( n -- a )
+    T_MSG_LEN_BLK *         ( offs )
+    t_msg_store +           ( a )
+;
+
+\ get queue buffer address from index
+: t_msg_q_buffer            ( n -- a )
+    t_msg_q_ctrl            ( a )
+    T_OVR_SZ +              ( a )
+;
+
+\ is queue empty - argument is t_msg_xxx address
+: t_msg_q_empty             ( a -- f )
+    2 CELLS + @             ( qty )
+    0= 
+;
+
+\ pop from front of queue - returns index of msg, -1 if none
+: t_msg_q_pop               ( a -- frnt-n )
+    DUP                     ( a a )
+    >R                      ( a )           \ save the queue address
+    @                       ( frnt-n )
+    DUP                     ( frnt-n frnt-n )
+    0< NOT IF               ( frnt-n )      \ queue has elements
+        DUP                     ( frnt-n frnt-n )   \ save returned n
+        t_msg_q_ctrl            ( frnt-n frnt-a )
+        T_OVR_NXT + C@          ( frnt-n nxt-n )
+        R@                      ( frnt-n nxt-n a )     \ store new first ref
+        !                       ( frnt-n  )
+        0 1-                    ( frnt-n -1 )
+        R@                      ( frnt-n -1 a )        \ queue address
+        @                       ( frnt-n -1 frnt-n )
+        DUP                     ( frnt-n -1 frnt-n frnt-n )
+        0< NOT IF               ( frnt-n -1 frnt-n )
+            t_msg_q_ctrl        ( frnt-n -1 frnt-a )
+            T_OVR_PRV +         ( frnt-n -1 prv-a )
+            !                   ( frnt-n  )            \ first element prev = -1
+        ELSE                    ( frnt-n -1 frnt-n )   \ queue is empty
+            2DROP               ( frnt-n  )
+        THEN                    ( frnt-n )
+        R>                      ( frnt-n a )
+        2 CELLS +               ( frnt-n qty-a )
+        0 1- SWAP               ( frnt-n -1 qty-a )
+        +!                      ( frnt-n )              \ decrement qty
+    ELSE                    ( frnt-n )
+        DROP                (  )        \ queue was empty
+        R> DROP             (  )        \ clear the return stack
+        0 1-                ( -1 )      \ frnt-n is invalid (empty)
+    THEN                    ( frnt-n )
+;
+
+
 \ handler for input message data
 \
 DECIMAL
@@ -96,12 +158,13 @@ DECIMAL
         ROT                 ( l f f )
         AND                 ( l f )
         IF                  ( l )   \ valid 
-            t_msg_count !   (  )
+            t_msg_count !   (  )    \ set the running count
             T_MSG_DATA t_msg_state ! (  )
         ELSE                (  )   \ length packet invalid
-            DROP            (  )    \ remain in MASK_MSG_LEN
+            DROP            (  )   \ remain in T_MSG_IDLE
         THEN
     ELSE                    ( n )   \ T_MSG_DATA 
+    \ TODO allocate a used block to write into
     THEN
 ;
 
