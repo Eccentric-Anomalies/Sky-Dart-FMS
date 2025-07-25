@@ -105,7 +105,11 @@ VARIABLE t_msg_used_qty     \ qty of blocks in queue
     0= 
 ;
 
-\ pop from front of queue - returns index of msg, -1 if none
+\ pop from front of queue
+\ argument is address of queue control block
+\ returns index of msg, -1 if none
+\
+DECIMAL
 : t_msg_q_pop               ( a -- frnt-n )
     DUP                     ( a a )
     >R                      ( a )           \ save the queue address
@@ -115,28 +119,85 @@ VARIABLE t_msg_used_qty     \ qty of blocks in queue
         DUP                     ( frnt-n frnt-n )   \ save returned n
         t_msg_q_ctrl            ( frnt-n frnt-a )
         T_OVR_NXT + C@          ( frnt-n nxt-n )
-        R@                      ( frnt-n nxt-n a )     \ store new first ref
+        R@                      ( frnt-n nxt-n a )      \ store new first ref
         !                       ( frnt-n  )
-        0 1-                    ( frnt-n -1 )
-        R@                      ( frnt-n -1 a )        \ queue address
+        -1                      ( frnt-n -1 )
+        R@                      ( frnt-n -1 a )         \ queue address
         @                       ( frnt-n -1 frnt-n )
         DUP                     ( frnt-n -1 frnt-n frnt-n )
         0< NOT IF               ( frnt-n -1 frnt-n )
             t_msg_q_ctrl        ( frnt-n -1 frnt-a )
             T_OVR_PRV +         ( frnt-n -1 prv-a )
-            !                   ( frnt-n  )            \ first element prev = -1
-        ELSE                    ( frnt-n -1 frnt-n )   \ queue is empty
+            !                   ( frnt-n  )             \ first element prev = -1
+        ELSE                    ( frnt-n -1 frnt-n )    \ queue is empty
             2DROP               ( frnt-n  )
+            R@                  ( frnt-n a )            \ queue address
+            1 CELLS +           ( frnt-n a )            \ address or last n
+            -1 SWAP             ( frnt-n -1 a )
+            !                   ( frnt-n )`             \ store -1 in last n
         THEN                    ( frnt-n )
         R>                      ( frnt-n a )
         2 CELLS +               ( frnt-n qty-a )
-        0 1- SWAP               ( frnt-n -1 qty-a )
-        +!                      ( frnt-n )              \ decrement qty
+        -1 SWAP                 ( frnt-n -1 qty-a )
+        +!                      ( frnt-n )              \ decrement q qty
     ELSE                    ( frnt-n )
         DROP                (  )        \ queue was empty
         R> DROP             (  )        \ clear the return stack
         0 1-                ( -1 )      \ frnt-n is invalid (empty)
     THEN                    ( frnt-n )
+;
+
+\ push to back of queue
+\ arguments are index of message block, 
+\ address of queue control block
+\
+DECIMAL
+: t_msg_q_push              ( n a -- )
+    DUP                     ( n a a )
+    >R                      ( n a )             \ save the queue address
+    1 CELLS +               ( n last-a )
+    @                       ( n last-n )
+    DUP                     ( n last-n last-n )
+    0< NOT IF               ( n last-n )               \ queue has elements
+        SWAP                ( last-n n )
+        DUP                 ( last-n n n )
+        ROLL                ( n n last-n )
+        DUP                 ( n n last-n last-n )
+        ROLL                ( n last-n last-n n )
+        t_msg_q_ctrl        ( n last-n last-n n-a )
+        T_OVR_PRV +         ( n last-n last-n n-prev ) 
+        C!                  ( n last-n )                \ set prev ptr in n
+        SWAP DUP            ( last-n n n )
+        ROLL                ( n n last-n )
+        t_msg_q_ctrl        ( n n last-n-a )
+        T_OVR_NXT +         ( n n last-n-next )
+        C!                  ( n )                       \ set next ptr in prev
+        DUP                 ( n n )
+        R@                  ( n n a )
+        1 CELLS +           ( n n a-end )
+        !                   ( n )                       \ set end of queue ptr
+        DROP                (  )
+    ELSE                    ( n last-n )                \ queue is empty
+        DROP                ( n )
+        DUP                 ( n n )
+        R@                  ( n n a )
+        !                   ( n )               \ first element is n
+        DUP                 ( n n )
+        R@ 1 CELLS +        ( n n a-end )       \ ref. to last element
+        !                   ( n )               \ last is n
+        -1 -1 ROLL          ( -1 -1 n )
+        DUP                 ( -1 -1 n )
+        t_msg_q_ctrl        ( -1 -1 n-a )
+        DUP                 ( -1 -1 n-a n-a )
+        ROLL SWAP           ( -1 n-a -1 n-a )
+        T_OVR_NXT + C!      ( -1 n-a )
+        T_OVR_PRV + C!      (  )                \ element's prv and nxt = -1
+    THEN                    (  )
+    R>                      ( a )
+    2 CELLS +               ( qty-a )
+    1 SWAP                  ( 1 qty-a )
+    +!                      (  )                \ increment q qty
+
 ;
 
 
