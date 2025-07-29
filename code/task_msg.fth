@@ -27,17 +27,20 @@ VARIABLE t_msg_active
 1 CONSTANT T_MSG_DATA
 VARIABLE t_msg_state
 VARIABLE t_msg_count
+VARIABLE t_msg_buffer_block     \ index of block being written
 
 \ Initialize variables as needed
 FALSE t_msg_active !
 T_MSG_IDLE t_msg_state !
 0 t_msg_count !
+-1 t_msg_buffer_block !
 
 \ Set up storage for received messages
 DECIMAL
 100 CONSTANT T_MSG_QTY_MAX
 2 CELLS CONSTANT T_OVR_SZ     \ size of overhead block, bytes
 LEN_MSG_MAX T_OVR_SZ + CONSTANT T_MSG_LEN_BLK  \ msg length + overhead
+0 CONSTANT T_OVR_LEN    \ overhead block, first byte is msg length
 1 CONSTANT T_OVR_NXT    \ overhead block, offset to next pointer
 2 CONSTANT T_OVR_PRV    \ overhead block, offset to prev pointer
 3 CONSTANT T_OVR_ALLOC  \ overhead block, offset to allocated flag (1 = allocated)
@@ -47,28 +50,28 @@ LEN_MSG_MAX T_OVR_SZ + CONSTANT T_MSG_LEN_BLK  \ msg length + overhead
 CREATE t_msg_store
 T_MSG_LEN_BLK T_MSG_QTY_MAX * DUP ALLOT ( l )
 ALIGN                                   ( l )
-t_msg_store SWAP                        ( c-addr l )
-ERASE
+t_msg_store SWAP 0                      ( c-addr l )
+FILL
 
-\ Queue definition blocks - must appear in this order
+\ Queue definition blocks
 \ Free message queue block
-VARIABLE t_msg_free         \ index of first free block or -1 for none
-VARIABLE t_msg_last_free    \ index of last free block or -1 for none
-VARIABLE t_msg_free_qty     \ qty of blocks in queue
+CREATE t_msg_free 3 CELLS ALLOT                     \ index of first free block or -1 for none
+t_msg_free 1 CELLS + CONSTANT T_MSG_LAST_FREE       \ index of last free block or -1 for none
+T_MSG_LAST_FREE 1 CELLS + CONSTANT T_MSG_FREE_QTY   \ qty of blocks in queue
 \ Used message queue block
-VARIABLE t_msg_used         \ index of first used block or -1 for none
-VARIABLE t_msg_last_used    \ index of last used block or -1 for none
-VARIABLE t_msg_used_qty     \ qty of blocks in queue
+CREATE t_msg_used 3 CELLS ALLOT                     \ index of first free block or -1 for none
+t_msg_used 1 CELLS + CONSTANT T_MSG_LAST_USED       \ index of last free block or -1 for none
+T_MSG_LAST_USED 1 CELLS + CONSTANT T_MSG_USED_QTY   \ qty of blocks in queue
 
 \ initialize the message store
 : t_msg_init_store      ( -- )
     0 t_msg_free !          (  )
-    T_MSG_QTY_MAX t_msg_free_qty !  (  )
+    T_MSG_QTY_MAX T_MSG_FREE_QTY !  (  )
     -1 t_msg_used !         (  )
-    0 t_msg_used_qty !      (  )
+    0 T_MSG_USED_QTY !      (  )
     T_MSG_QTY_MAX 1-        ( l )
-    t_msg_last_free !       (  )
-    -1 t_msg_last_used !    (  )
+    T_MSG_LAST_FREE !       (  )
+    -1 T_MSG_LAST_USED !    (  )
     T_MSG_QTY_MAX 0 DO      (  )
         I T_MSG_LEN_BLK *   ( offs )
         t_msg_store +       ( a )
@@ -97,6 +100,12 @@ VARIABLE t_msg_used_qty     \ qty of blocks in queue
 : t_msg_q_buffer            ( n -- a )
     t_msg_q_ctrl            ( a )
     T_OVR_SZ +              ( a )
+;
+
+\ get queue buffer len address from index
+: t_msg_q_len               ( n -- a )
+    t_msg_q_ctrl            ( a )
+    T_OVR_LEN +             ( a )
 ;
 
 \ is queue empty - argument is t_msg_xxx address
@@ -134,7 +143,7 @@ DECIMAL
             R@                  ( frnt-n a )            \ queue address
             1 CELLS +           ( frnt-n a )            \ address or last n
             -1 SWAP             ( frnt-n -1 a )
-            !                   ( frnt-n )`             \ store -1 in last n
+            !                   ( frnt-n )              \ store -1 in last n
         THEN                    ( frnt-n )
         R>                      ( frnt-n a )
         2 CELLS +               ( frnt-n qty-a )
@@ -143,7 +152,7 @@ DECIMAL
     ELSE                    ( frnt-n )
         DROP                (  )        \ queue was empty
         R> DROP             (  )        \ clear the return stack
-        0 1-                ( -1 )      \ frnt-n is invalid (empty)
+        -1                  ( -1 )      \ frnt-n is invalid (empty)
     THEN                    ( frnt-n )
 ;
 
@@ -161,14 +170,14 @@ DECIMAL
     0< NOT IF               ( n last-n )               \ queue has elements
         SWAP                ( last-n n )
         DUP                 ( last-n n n )
-        ROLL                ( n n last-n )
+        ROT                 ( n n last-n )
         DUP                 ( n n last-n last-n )
-        ROLL                ( n last-n last-n n )
+        ROT                 ( n last-n last-n n )
         t_msg_q_ctrl        ( n last-n last-n n-a )
         T_OVR_PRV +         ( n last-n last-n n-prev ) 
         C!                  ( n last-n )                \ set prev ptr in n
         SWAP DUP            ( last-n n n )
-        ROLL                ( n n last-n )
+        ROT                 ( n n last-n )
         t_msg_q_ctrl        ( n n last-n-a )
         T_OVR_NXT +         ( n n last-n-next )
         C!                  ( n )                       \ set next ptr in prev
@@ -185,11 +194,10 @@ DECIMAL
         DUP                 ( n n )
         R@ 1 CELLS +        ( n n a-end )       \ ref. to last element
         !                   ( n )               \ last is n
-        -1 -1 ROLL          ( -1 -1 n )
-        DUP                 ( -1 -1 n )
+        -1 -1 ROT           ( -1 -1 n )
         t_msg_q_ctrl        ( -1 -1 n-a )
         DUP                 ( -1 -1 n-a n-a )
-        ROLL SWAP           ( -1 n-a -1 n-a )
+        ROT  SWAP           ( -1 n-a -1 n-a )
         T_OVR_NXT + C!      ( -1 n-a )
         T_OVR_PRV + C!      (  )                \ element's prv and nxt = -1
     THEN                    (  )
@@ -197,9 +205,22 @@ DECIMAL
     2 CELLS +               ( qty-a )
     1 SWAP                  ( 1 qty-a )
     +!                      (  )                \ increment q qty
-
 ;
 
+
+\ allocate a new message
+\ returns the index of the returned message (0 .. T_MSG_QTY_MAX-1)
+\
+DECIMAL
+: t_msg_alloc               ( -- n )
+    t_msg_free t_msg_q_empty    ( f )
+    IF                                  \ no free blocks
+        t_msg_used              ( q-a ) \ reuse oldest message
+    ELSE
+        t_msg_free              ( q-a ) \ use the next free block    
+    THEN
+    t_msg_q_pop                 ( n )
+;
 
 \ handler for input message data
 \
@@ -221,11 +242,41 @@ DECIMAL
         IF                  ( l )   \ valid 
             t_msg_count !   (  )    \ set the running count
             T_MSG_DATA t_msg_state ! (  )
+            t_msg_alloc     ( n )
+            DUP t_msg_q_ctrl    ( n n-q )
+            T_OVR_LEN + 0 C!    ( n )   \ set msg length to zero
+            t_msg_buffer_block !    (  )
         ELSE                (  )   \ length packet invalid
             DROP            (  )   \ remain in T_MSG_IDLE
         THEN
     ELSE                    ( n )   \ T_MSG_DATA 
-    \ TODO allocate a used block to write into
+        t_msg_buffer_block @    ( n n-b )
+        DUP                 ( n n-b n-b )
+        t_msg_q_buffer      ( n n-b n-txt )
+        t_msg_count @ DUP   ( n n-b n-txt n-rem n-rem )
+        4 > IF              ( n n-b n-txt n-rem )
+            DROP 4          ( n n-b n-txt 4 )
+        THEN                ( n n-b n-txt n-chars )
+        DUP                 ( n n-b n-txt n-chars n-chars )
+        t_msg_count @ SWAP  ( n n-b n-txt n-chars n-rem n-chars )
+        - t_msg_count !     ( n n-b n-txt n-chars )     \ update t_msg_count
+        0 ?DO               ( n n-b n-txt )
+            SWAP            ( n n-txt n-b )
+            DUP             ( n n-txt n-b n-b )
+            t_msg_q_len     ( n n-txt n-b a-len )
+            C@              ( n n-txt n-b len )
+            2 PICK +        ( n n-txt n-b addr )
+            3 PICK SWAP     ( n n-txt n-b n addr )
+            C!              ( n n-txt n-b )
+            ROT             ( n-txt n-b n )
+            8 RSHIFT        ( n-txt n-b n )             \ shift in the next char
+            SWAP DUP        ( n-txt n n-b n-b )
+            t_msg_q_len     ( n-txt n n-b a-len )
+            DUP             ( n-txt n n-b a-len a-len )
+            C@ 1+ SWAP C!   ( n-txt n n-b )             \ increment length
+            ROT             ( n n-b n-txt )
+        LOOP
+        \ TODO check for message done - save and reset state
     THEN
 ;
 
