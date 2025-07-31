@@ -28,12 +28,14 @@ VARIABLE t_msg_active
 VARIABLE t_msg_state
 VARIABLE t_msg_count
 VARIABLE t_msg_buffer_block     \ index of block being written
+VARIABLE t_msg_curr_block       \ index of block being viewed
 
 \ Initialize variables as needed
 FALSE t_msg_active !
 T_MSG_IDLE t_msg_state !
 0 t_msg_count !
 -1 t_msg_buffer_block !
+-1 t_msg_curr_block !
 
 \ Set up storage for received messages
 DECIMAL
@@ -220,6 +222,11 @@ DECIMAL
         t_msg_free              ( q-a ) \ use the next free block    
     THEN
     t_msg_q_pop                 ( n )
+    DUP                         ( n n )
+    t_msg_curr_block @          ( n n curr-n )
+    = IF                        ( n )   \ just allocated the current block
+        -1 t_msg_curr_block !   ( n )   \ invalidate the current block
+    THEN                        ( n )
 ;
 
 \ handler for input message data
@@ -241,14 +248,14 @@ DECIMAL
         AND                 ( l f )
         IF                  ( l )   \ valid 
             t_msg_count !   (  )    \ set the running count
-            T_MSG_DATA t_msg_state ! (  )
-            t_msg_alloc     ( n )
+            T_MSG_DATA t_msg_state ! (  )   \ set state to DATA
+            t_msg_alloc     ( n )   \ get a free message block
             DUP t_msg_q_ctrl    ( n n-q )
             T_OVR_LEN + 0 C!    ( n )   \ set msg length to zero
-            t_msg_buffer_block !    (  )
+            t_msg_buffer_block !    (  )    \ save the buffer block index
         ELSE                (  )   \ length packet invalid
             DROP            (  )   \ remain in T_MSG_IDLE
-        THEN
+        THEN                (  )
     ELSE                    ( n )   \ T_MSG_DATA 
         t_msg_buffer_block @    ( n n-b )
         DUP                 ( n n-b n-b )
@@ -275,9 +282,17 @@ DECIMAL
             DUP             ( n-txt n n-b a-len a-len )
             C@ 1+ SWAP C!   ( n-txt n n-b )             \ increment length
             ROT             ( n n-b n-txt )
-        LOOP
-        \ TODO check for message done - save and reset state
-    THEN
+        LOOP                ( n n-b n-txt )
+        ROT 2DROP           ( n-b )
+        t_msg_count @       ( n-b rem )
+        0= IF               ( n-b )    \ message complete
+            T_MSG_IDLE t_msg_state !    ( n-b )    \ state is IDLE
+            t_msg_used      ( n-b q-a )
+            t_msg_q_push    (  )        \ add it to the used queue
+        ELSE                ( n-b )
+            DROP            (  )
+        THEN                (  )
+    THEN                    (  )
 ;
 
 
@@ -323,6 +338,18 @@ DECIMAL
     1 12  AT-XY horizontal_rule
     10 13 AT-XY ." UP/DN TO SCROLL"
     fms_refresh_buffer_display  (  )
+    \ FIXME TESTING
+    1 3 AT-XY
+    768     \ 00000300
+    t_msg_rcv
+    4407873 \ 00434241
+    t_msg_rcv
+    t_msg_used t_msg_q_empty NOT IF
+        t_msg_used t_msg_q_pop  ( n )
+        DUP t_msg_q_buffer      ( n c-addr )
+        SWAP t_msg_q_len C@     ( c-addr l )
+        TYPE
+    THEN
 ;
 
 \ (6) t_msg poll function
