@@ -21,10 +21,9 @@ DECIMAL
 \ RTC Tick Handler - initializes FMS clock
 \
 : handle_rtc_tick           ( sec -- )
-    DUP ." tick " . ." "    \ FIXME
     1000 UM*                ( d-msec )
     clock_msec_count 2!     (  )
-    \ ORT_RTC_SECONDS UNLISTEN
+    PORT_RTC_SECONDS UNLISTEN
 ;
 
 
