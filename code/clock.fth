@@ -7,6 +7,20 @@ DECIMAL
 2VARIABLE clock_msec_count
 50 CONSTANT MSEC_INTERVAL
 
+\ Emit a seconds-timestamp in 0000:00:00 format
+\
+DECIMAL
+: clock_stst        ( n -- )
+    60 /MOD         ( s m )
+    60 /MOD         ( s m h )
+    0               ( s m dh )
+    <# [CHAR] : HOLD # # # # #> TYPE ( s m )
+    0               ( s dm )
+    <# [CHAR] : HOLD # # #> TYPE ( s )
+    0               ( ds )
+    <# # # #> TYPE  (  )
+;
+
 \ TICK HANDLER
 \
 : handle_tick_msec  ( -- )
@@ -25,7 +39,6 @@ DECIMAL
     clock_msec_count 2!     (  )
     PORT_RTC_SECONDS UNLISTEN
 ;
-
 
 \ === LISTEN FOR RTC TICK ===
 PORT_RTC_SECONDS 0 LISTEN handle_rtc_tick
