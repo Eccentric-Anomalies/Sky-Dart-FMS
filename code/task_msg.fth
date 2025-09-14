@@ -110,6 +110,12 @@ T_MSG_LAST_USED 1 CELLS + CONSTANT T_MSG_USED_QTY   \ qty of blocks in queue
     T_OVR_LEN +             ( a )
 ;
 
+\ get queue buffer timestamp address from index
+: t_msg_q_tstamp            ( n -- a )
+    t_msg_q_ctrl            ( a )
+    T_OVR_TSTAMP +          ( a )
+;
+
 \ is queue empty - argument is t_msg_xxx address
 : t_msg_q_empty             ( a -- f )
     2 CELLS + @             ( qty )
@@ -250,9 +256,14 @@ DECIMAL
             t_msg_count !   (  )    \ set the running count
             T_MSG_DATA t_msg_state ! (  )   \ set state to DATA
             t_msg_alloc     ( n )   \ get a free message block
-            DUP t_msg_q_ctrl    ( n n-q )
-            T_OVR_LEN + 0 C!    ( n )   \ set msg length to zero
-            t_msg_buffer_block !    (  )    \ save the buffer block index
+            DUP t_msg_q_len ( n a-len )
+            0 SWAP C!       ( n )   \ set msg length to zero
+            DUP             ( n n )
+            t_msg_buffer_block !    ( n )    \ save the buffer block index
+            t_msg_q_tstamp  ( a-tstamp )    \ get timestamp address
+            clock_msec_count 2@     ( a-tstmp 2msec )
+            1000 M/         ( a_tstmp sec ) \ save the message timestamp
+            SWAP !          (  )
         ELSE                (  )   \ length packet invalid
             DROP            (  )   \ remain in T_MSG_IDLE
         THEN                (  )
@@ -333,6 +344,7 @@ DECIMAL
     PAGE
     TRUE t_msg_active !         (  )
     t_msg_menu menu_show        (  )
+    1 1   AT-XY ." RECEIVE TIME:"
     1 2   AT-XY horizontal_double_rule
     1 10  AT-XY horizontal_double_rule
     1 12  AT-XY horizontal_rule
@@ -346,10 +358,15 @@ DECIMAL
     t_msg_rcv
     t_msg_used t_msg_q_empty NOT IF
         t_msg_used t_msg_q_pop  ( n )
-        DUP t_msg_q_buffer      ( n c-addr )
-        SWAP t_msg_q_len C@     ( c-addr l )
-        TYPE
+        DUP                     ( n n )
+        DUP t_msg_q_buffer      ( n n c-addr )
+        SWAP t_msg_q_len C@     ( n c-addr l )
+        TYPE                    ( n )
+        15 1 AT-XY              ( n )
+        t_msg_q_tstamp @        ( tstamp )
+        clock_stst              (  )    \ emit a timestamp
     THEN
+    \ FIXME END TESTING
 ;
 
 \ (6) t_msg poll function
