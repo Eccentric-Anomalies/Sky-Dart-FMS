@@ -22,6 +22,9 @@
 \ task state
 VARIABLE t_msg_active
 
+\ message screen update required
+VARIABLE t_msg_update
+
 \ message reception state machine states
 0 CONSTANT T_MSG_IDLE
 1 CONSTANT T_MSG_DATA
@@ -36,6 +39,7 @@ T_MSG_IDLE t_msg_state !
 0 t_msg_count !
 -1 t_msg_buffer_block !
 -1 t_msg_curr_block !
+FALSE t_msg_update !
 
 \ Set up storage for received messages
 DECIMAL
@@ -61,8 +65,8 @@ CREATE t_msg_free 3 CELLS ALLOT                     \ index of first free block 
 t_msg_free 1 CELLS + CONSTANT T_MSG_LAST_FREE       \ index of last free block or -1 for none
 T_MSG_LAST_FREE 1 CELLS + CONSTANT T_MSG_FREE_QTY   \ qty of blocks in queue
 \ Used message queue block
-CREATE t_msg_used 3 CELLS ALLOT                     \ index of first free block or -1 for none
-t_msg_used 1 CELLS + CONSTANT T_MSG_LAST_USED       \ index of last free block or -1 for none
+CREATE t_msg_used 3 CELLS ALLOT                     \ index of first used block or -1 for none
+t_msg_used 1 CELLS + CONSTANT T_MSG_LAST_USED       \ index of last used block or -1 for none
 T_MSG_LAST_USED 1 CELLS + CONSTANT T_MSG_USED_QTY   \ qty of blocks in queue
 
 \ initialize the message store
@@ -90,12 +94,43 @@ T_MSG_LAST_USED 1 CELLS + CONSTANT T_MSG_USED_QTY   \ qty of blocks in queue
     LOOP
 ;
 
+\ Perform the store initialization
+t_msg_init_store            (  )
+
+
 \ Queue utilities
 
 \ get queue control block from index
 : t_msg_q_ctrl              ( n -- a )
     T_MSG_LEN_BLK *         ( offs )
     t_msg_store +           ( a )
+;
+
+\ get queue next/prev block index from index
+\ returns -1 if next/prev is 255
+DECIMAL
+: t_msg_q_np                ( n offs -- n )
+    SWAP                    ( offs n )
+    t_msg_q_ctrl            ( offs a )
+    + C@                    ( n )
+    DUP                     ( n n )
+    255 = IF                ( n )
+        DROP -1             ( -1 )
+    THEN                    ( n )
+;
+
+\ get queue next block index from index
+DECIMAL
+: t_msg_q_next              ( n -- nn )
+    T_OVR_NXT               ( n offs )
+    t_msg_q_np              ( n )
+;
+
+\ get queue prev block index from index
+DECIMAL
+: t_msg_q_prev              ( n -- nn )
+    T_OVR_PRV               ( n offs )
+    t_msg_q_np              ( n )
 ;
 
 \ get queue buffer address from index
@@ -120,6 +155,11 @@ T_MSG_LAST_USED 1 CELLS + CONSTANT T_MSG_USED_QTY   \ qty of blocks in queue
 : t_msg_q_empty             ( a -- f )
     2 CELLS + @             ( qty )
     0= 
+;
+
+\ peek at front of queue without popping
+: t_msg_q_peek              ( a -- frnt-n )
+    @                       ( frnt-n )
 ;
 
 \ pop from front of queue
@@ -306,12 +346,90 @@ DECIMAL
     THEN                    (  )
 ;
 
-
 \ (1) Allocate and clear a menu structure: t_msg_menu
 menu_create t_msg_menu
 t_msg_menu menu_clear
 
+
 \ (2) handlers for function keys
+
+: t_msg_prev            ( -- )
+    t_msg_curr_block @  ( n )
+    t_msg_q_prev        ( np )
+    t_msg_curr_block !  (  )
+    TRUE t_msg_update ! (  )    \ update message on next poll
+;
+
+: t_msg_next            ( -- )
+    t_msg_curr_block @  ( n )
+    t_msg_q_next        ( nn )
+    t_msg_curr_block !  (  )
+    TRUE t_msg_update ! (  )    \ update message on next poll
+;
+
+\ (2) end handlers
+
+
+\ Set prev msg link ( f = TRUE if link is active )
+: t_msg_sprev               ( f -- )
+    IF
+        ['] t_msg_prev S" -PREV  " 
+    ELSE
+        0 S" NO PREV" 
+    THEN    
+    0 0 t_msg_menu 0 4 menu_add_option
+;
+
+\ Set next msg link ( f = TRUE if link is active )
+: t_msg_snext               ( f -- )
+    IF
+        ['] t_msg_next S"   NEXT-" 
+    ELSE
+        0 S" NO NEXT" 
+    THEN    
+    0 0 t_msg_menu 1 4 menu_add_option
+;
+
+\ Display the current message
+\
+: t_msg_disp                ( -- )
+    t_msg_curr_block @ DUP  ( n n )
+    0< IF                   ( n )   \ no current message
+        DROP                (  )
+        t_msg_used          ( a )
+        t_msg_q_peek        ( n )   \ get first used message
+        DUP 1 1 AT-XY . \ FIXME show current block
+    THEN                    ( n )
+    DUP                     ( n n )
+    0< NOT IF               ( n )   \ only display valid message
+        DUP                     ( n n )
+        DUP t_msg_q_buffer      ( n n c-addr )
+        1 3 AT-XY               ( n n c-addr )
+        SWAP t_msg_q_len C@     ( n c-addr l )
+        TYPE                    ( n )
+        15 1 AT-XY              ( n )
+        DUP                     ( n )
+        t_msg_q_tstamp @        ( n tstamp )
+        clock_stst              ( n )    \ emit a timestamp
+        DUP                     ( n n )  \ set the next/prev links
+        t_msg_q_next            ( n nn )
+        DUP . \ FIXME what is next?
+        0< NOT t_msg_snext      ( n )
+        t_msg_q_prev            ( np )
+        0< NOT t_msg_sprev      (  )
+    ELSE                    ( n )
+        DROP                (  )
+        10 3 DO             (  )    \ clear display
+            1 I AT-XY       (  )
+            ."                         "
+        LOOP                (  )
+        FALSE t_msg_sprev   (  )    \ disable prev/next
+        FALSE t_msg_snext   (  )
+    THEN                    (  )
+;
+
+
+\ (2) handler for return key
 
 : t_msg_return        ( -- )
     FALSE t_msg_active !
@@ -321,17 +439,9 @@ t_msg_menu menu_clear
     task_start          (  )
 ;
 
-: t_msg_prev            ( -- )
-;
-
-: t_msg_next            ( -- )
-;
-
 \ (3) Define the menu
 : t_msg_menu_create
     ['] t_msg_return S" <RETURN" 0 0 t_msg_menu 0 5 menu_add_option
-    ['] t_msg_prev S" -PREV" 0 0 t_msg_menu 0 4 menu_add_option
-    ['] t_msg_next S" NEXT-" 0 0 t_msg_menu 1 4 menu_add_option
 ;
 
 \ (4) Build the menu
@@ -340,7 +450,6 @@ t_msg_menu_create
 \ (5) t_msg init function
 DECIMAL
 : t_msg_init                 ( -- )
-    t_msg_init_store            (  )
     PAGE
     TRUE t_msg_active !         (  )
     t_msg_menu menu_show        (  )
@@ -356,21 +465,18 @@ DECIMAL
     t_msg_rcv
     4407873 \ 00434241
     t_msg_rcv
-    t_msg_used t_msg_q_empty NOT IF
-        t_msg_used t_msg_q_pop  ( n )
-        DUP                     ( n n )
-        DUP t_msg_q_buffer      ( n n c-addr )
-        SWAP t_msg_q_len C@     ( n c-addr l )
-        TYPE                    ( n )
-        15 1 AT-XY              ( n )
-        t_msg_q_tstamp @        ( tstamp )
-        clock_stst              (  )    \ emit a timestamp
-    THEN
     \ FIXME END TESTING
+    TRUE t_msg_update !         (  )    \ force display on poll
 ;
 
 \ (6) t_msg poll function
-: t_msg_poll                  ( -- )
+: t_msg_poll                    ( -- )
+    t_msg_update @ IF           (  )
+        1 14 AT-XY t_msg_curr_block @ . ."    " \ FIXME
+        t_msg_disp              (  )
+        FALSE t_msg_update !    (  )
+        t_msg_menu menu_show    (  )    \ update links
+    THEN                        (  )
 ;
 
 \ (7) Create the task definition: task_msg (no polling)
