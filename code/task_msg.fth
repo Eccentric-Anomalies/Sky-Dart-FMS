@@ -43,7 +43,7 @@ FALSE t_msg_update !
 
 \ Set up storage for received messages
 DECIMAL
-100 CONSTANT T_MSG_QTY_MAX
+100 CONSTANT T_MSG_QTY_MAX    \ how many message blocks available
 2 CELLS CONSTANT T_OVR_SZ     \ size of overhead block, bytes
 LEN_MSG_MAX T_OVR_SZ + CONSTANT T_MSG_LEN_BLK  \ msg length + overhead
 0 CONSTANT T_OVR_LEN    \ overhead block, first byte is msg length
@@ -185,7 +185,7 @@ DECIMAL
         0< NOT IF               ( frnt-n -1 frnt-n )
             t_msg_q_ctrl        ( frnt-n -1 frnt-a )
             T_OVR_PRV +         ( frnt-n -1 prv-a )
-            !                   ( frnt-n  )             \ first element prev = -1
+            C!                  ( frnt-n  )             \ first element prev = -1
         ELSE                    ( frnt-n -1 frnt-n )    \ queue is empty
             2DROP               ( frnt-n  )
             R@                  ( frnt-n a )            \ queue address
@@ -222,8 +222,13 @@ DECIMAL
         DUP                 ( n n last-n last-n )
         ROT                 ( n last-n last-n n )
         t_msg_q_ctrl        ( n last-n last-n n-a )
-        T_OVR_PRV +         ( n last-n last-n n-prev ) 
-        C!                  ( n last-n )                \ set prev ptr in n
+        DUP                 ( n last-n last-n n-a n-a )
+        T_OVR_PRV +         ( n last-n last-n n-a n-prev )
+        ROT SWAP            ( n last-n n-a last-n n-prev ) 
+        C!                  ( n last-n n-a )            \ set prev ptr in n
+        T_OVR_NXT +         ( n last-n n-next )
+        -1 SWAP             ( n last-n -1 n-next )      \ set next ptr in n to -1
+        C!                  ( n last-n )
         SWAP DUP            ( last-n n n )
         ROT                 ( n n last-n )
         t_msg_q_ctrl        ( n n last-n-a )
@@ -267,13 +272,21 @@ DECIMAL
     ELSE
         t_msg_free              ( q-a ) \ use the next free block    
     THEN
-    t_msg_q_pop                 ( n )
-    DUP                         ( n n )
-    t_msg_curr_block @          ( n n curr-n )
-    = IF                        ( n )   \ just allocated the current block
-        -1 t_msg_curr_block !   ( n )   \ invalidate the current block
+    DUP                         ( q-a q-a )
+    t_msg_q_peek                ( q-a n-first ) \ in case we need to adjust curr_block
+    t_msg_q_next                ( q-a n-next )  \ hold on to n's next block
+    SWAP                        ( q-next q-a )
+    t_msg_q_pop                 ( q-next n )
+    DUP                         ( q-next n n )
+    t_msg_curr_block @          ( q-next n n curr-n )
+    = IF                        ( q-next n )    \ just allocated the current block
+        SWAP                    ( n q-next )    \ set curr block to its next
+        t_msg_curr_block !      ( n )   \ current block moves to next
+    ELSE                        ( q-next n )
+        NIP                     ( n )
     THEN                        ( n )
 ;
+
 
 \ handler for input message data
 \
@@ -398,12 +411,17 @@ t_msg_menu menu_clear
         DROP                (  )
         t_msg_used          ( a )
         t_msg_q_peek        ( n )   \ get first used message
-        DUP 1 1 AT-XY . \ FIXME show current block
+        DUP                 ( n n )
+        t_msg_curr_block !  ( n )
     THEN                    ( n )
     DUP                     ( n n )
     0< NOT IF               ( n )   \ only display valid message
         DUP                     ( n n )
         DUP t_msg_q_buffer      ( n n c-addr )
+        10 3 DO                 ( n n c-addr )    \ clear display
+            1 I AT-XY           ( n n c-addr )
+            ."                         "
+        LOOP                    ( n n c-addr )
         1 3 AT-XY               ( n n c-addr )
         SWAP t_msg_q_len C@     ( n c-addr l )
         TYPE                    ( n )
@@ -413,16 +431,11 @@ t_msg_menu menu_clear
         clock_stst              ( n )    \ emit a timestamp
         DUP                     ( n n )  \ set the next/prev links
         t_msg_q_next            ( n nn )
-        DUP . \ FIXME what is next?
         0< NOT t_msg_snext      ( n )
         t_msg_q_prev            ( np )
         0< NOT t_msg_sprev      (  )
     ELSE                    ( n )
         DROP                (  )
-        10 3 DO             (  )    \ clear display
-            1 I AT-XY       (  )
-            ."                         "
-        LOOP                (  )
         FALSE t_msg_sprev   (  )    \ disable prev/next
         FALSE t_msg_snext   (  )
     THEN                    (  )
@@ -472,10 +485,12 @@ DECIMAL
 \ (6) t_msg poll function
 : t_msg_poll                    ( -- )
     t_msg_update @ IF           (  )
-        1 14 AT-XY t_msg_curr_block @ . ."    " \ FIXME
+        CURSOR-HIDE
         t_msg_disp              (  )
         FALSE t_msg_update !    (  )
         t_msg_menu menu_show    (  )    \ update links
+        fms_park_cursor         (  )
+        CURSOR-SHOW             (  )
     THEN                        (  )
 ;
 
