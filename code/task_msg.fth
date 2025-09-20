@@ -472,13 +472,6 @@ DECIMAL
     1 12  AT-XY horizontal_rule
     10 13 AT-XY ." UP/DN TO SCROLL"
     fms_refresh_buffer_display  (  )
-    \ FIXME TESTING
-    1 3 AT-XY
-    768     \ 00000300
-    t_msg_rcv
-    4407873 \ 00434241
-    t_msg_rcv
-    \ FIXME END TESTING
     TRUE t_msg_update !         (  )    \ force display on poll
 ;
 
