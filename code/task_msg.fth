@@ -32,6 +32,11 @@ VARIABLE t_msg_state
 VARIABLE t_msg_count
 VARIABLE t_msg_buffer_block     \ index of block being written
 VARIABLE t_msg_curr_block       \ index of block being viewed
+\ message display area constants
+7 CONSTANT T_MSG_BUFF_ROW_QTY
+\ message display variables
+VARIABLE t_msg_start_line   \ display starting at line in curr message
+VARIABLE t_msg_line_qty     \ number of lines in current message
 
 \ Initialize variables as needed
 FALSE t_msg_active !
@@ -96,6 +101,26 @@ T_MSG_LAST_USED 1 CELLS + CONSTANT T_MSG_USED_QTY   \ qty of blocks in queue
 
 \ Perform the store initialization
 t_msg_init_store            (  )
+
+\ Message display utilities
+
+\ Count lines in the current block
+: t_msg_count_lines         ( n -- )
+    \ FIXME working here
+;
+
+\ Initialize variables for message display
+: t_msg_init_msg_vars       ( -- )
+    0 t_msg_start_line !    (  )
+    0 t_msg_line_qty !      (  ) 
+    t_msg_curr_block @      ( n )   \ if there is a current block..
+    DUP 0< NOT IF           ( n )
+        t_msg_count_lines   ( l )
+        t_msg_line_qty !    (  )
+    ELSE                    ( n )
+        DROP                (  )
+    THEN                    (  )
+;
 
 
 \ Queue utilities
@@ -365,20 +390,33 @@ menu_create t_msg_menu
 t_msg_menu menu_clear
 
 
-\ (2) handlers for function keys
+\ (2) handlers for keys
+
+\ common code for next/prev message keys
+: t_msg_exec_np         ( npn -- )
+    t_msg_curr_block !  (  )
+    t_msg_init_msg_vars (  )    \ initialize display vars
+    TRUE t_msg_update ! (  )    \ update message on next poll
+;
 
 : t_msg_prev            ( -- )
     t_msg_curr_block @  ( n )
     t_msg_q_prev        ( np )
-    t_msg_curr_block !  (  )
-    TRUE t_msg_update ! (  )    \ update message on next poll
+    t_msg_exec_np       (  )
 ;
 
 : t_msg_next            ( -- )
     t_msg_curr_block @  ( n )
     t_msg_q_next        ( nn )
-    t_msg_curr_block !  (  )
-    TRUE t_msg_update ! (  )    \ update message on next poll
+    t_msg_exec_np       (  )
+;
+
+: t_msg_up              ( -- )
+    22 14 AT-XY ." UP"     \ FIXME
+;  
+
+: t_msg_dn              ( -- )
+    22 14 AT-XY ." DN"     \ FIXME
 ;
 
 \ (2) end handlers
@@ -447,6 +485,7 @@ t_msg_menu menu_clear
 
 : t_msg_return        ( -- )
     FALSE t_msg_active !
+    fms_reset_key_xts   (  )  \ reset up/dn key handlers
     task_main_addr @    ( parent-orig-task )
     t_msg_addr @        ( parent-orig-task this-task )
     task_get_orig       ( parent-orig-task orig-task )
@@ -473,7 +512,10 @@ DECIMAL
     1 12  AT-XY horizontal_rule
     10 13 AT-XY ." UP/DN TO SCROLL"
     fms_refresh_buffer_display  (  )
+    t_msg_init_msg_vars         (  )    \ initialize display vars
     TRUE t_msg_update !         (  )    \ force display on poll
+    ['] t_msg_up fms_up_xt !    (  )    \ hook the up key
+    ['] t_msg_dn fms_dn_xt !    (  )    \ hook the dn key
 ;
 
 \ (6) t_msg poll function

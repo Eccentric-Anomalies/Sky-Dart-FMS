@@ -17,11 +17,34 @@ CREATE fms_num_buffer NUMERIC_AVAILABLE_LENGTH ALLOT
 \ Keep track of whole and frac parts of number
 VARIABLE fms_whole
 VARIABLE fms_frac
+\ Vector for handling UP DOWN and SP keys
+VARIABLE fms_up_xt
+VARIABLE fms_dn_xt
+VARIABLE fms_sp_xt
 
 \ Initialize variables
 fms_num_buffer fms_whole !
 0 fms_frac !
 
+\ Reset the fms special key handler vectors
+: fms_reset_key_xts            ( -- )
+    0 fms_up_xt !
+    0 fms_dn_xt !
+    0 fms_sp_xt !
+    ;
+
+\ and reset them now...
+fms_reset_key_xts
+
+\ Vector to an fms special key handler, if set
+: fms_vec                   ( a -- )
+    @                       ( xt )
+    DUP 0<> IF              ( xt )
+        EXECUTE             (  )
+    ELSE                    ( xt )
+        DROP                (  )
+    THEN                    (  )
+;
 
 \ Park the cursor position in the lower-right screen corner
 \ 
@@ -248,7 +271,18 @@ fms_num_buffer fms_whole !
                 [CHAR] 0 +          ( u )
                 fms_num_buffer fms_num_curr_length @ + C!    (  )
                 1 fms_num_curr_length +!                     (  )
-            ELSE                    ( [ELSE 6] )
+            ELSE                    ( [ELSE 6] ) \ handle up dn sp keys
+                DUP FMS_UP = IF     ( u )
+                    fms_up_xt fms_vec   ( u )
+                ELSE                ( u )
+                    DUP FMS_DN = IF ( u )
+                        fms_dn_xt fms_vec   ( u )
+                    ELSE            ( u )
+                        DUP FMS_SP = IF ( u )
+                            fms_sp_xt fms_vec   ( u )
+                        THEN        ( u )
+                    THEN            ( u )
+                THEN                ( u )
                 DROP                (  )
             THEN                    ( [THEN 6] )
             THEN                    ( [THEN 5] )
