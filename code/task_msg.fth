@@ -353,6 +353,7 @@ DECIMAL
             T_MSG_IDLE t_msg_state !    ( n-b )    \ state is IDLE
             t_msg_used      ( n-b q-a )
             t_msg_q_push    (  )        \ add it to the used queue
+            TRUE t_msg_update ! (  )    \ refresh display
         ELSE                ( n-b )
             DROP            (  )
         THEN                (  )
