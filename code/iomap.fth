@@ -81,6 +81,7 @@ HEX
     00C8 CONSTANT LEN_MSG_MAX       \ maximum characters in message
     0000FF00 CONSTANT MASK_MSG_LEN
     00000001 CONSTANT OFS_MSG_LEN   \ one byte offset to message length
+    0D CONSTANT EOL                 \ forced end of line
 
 \ == INPUTS ===
 \

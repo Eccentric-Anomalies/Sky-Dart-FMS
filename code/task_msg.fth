@@ -37,6 +37,7 @@ VARIABLE t_msg_curr_block       \ index of block being viewed
 \ message display variables
 VARIABLE t_msg_start_line   \ display starting at line in curr message
 VARIABLE t_msg_line_qty     \ number of lines in current message
+VARIABLE t_msg_col_cnt      \ keep track of columns
 
 \ Initialize variables as needed
 FALSE t_msg_active !
@@ -105,21 +106,34 @@ t_msg_init_store            (  )
 \ Message display utilities
 
 \ Count lines in the current block
-: t_msg_count_lines         ( n -- )
+: t_msg_count_lines         ( -- )
+    0 t_msg_line_qty !      (  )
+    t_msg_curr_block @      ( n )
+    0 SWAP                  ( n )   \ initialize line count
+    DUP                     ( n n )
+    t_msg_q_buffer          ( n acstart )
+    DUP                     ( n acstart acstart )
+    ROT                     ( acstart acstart n )
+    t_msg_q_len             ( acstart acstart aclen )
+    C@ +                    ( acstart acend )
+    SWAP                    ( acend acstart )
+    BEGIN                   ( acend acstart )
+        2DUP                ( acend acstart acend acstart )
+        <>                  ( acend acstart f )
+    WHILE                   ( acend acstart )
+        DUP C@              ( acend acstart char )
+    REPEAT                  ( acend acstart )
+    \ FIXME working here
+;
+
+\ Display lines from given start line (t_msg_start_line)
+: t_msg_disp_txt            ( -- )
     \ FIXME working here
 ;
 
 \ Initialize variables for message display
 : t_msg_init_msg_vars       ( -- )
     0 t_msg_start_line !    (  )
-    0 t_msg_line_qty !      (  ) 
-    t_msg_curr_block @      ( n )   \ if there is a current block..
-    DUP 0< NOT IF           ( n )
-        t_msg_count_lines   ( l )
-        t_msg_line_qty !    (  )
-    ELSE                    ( n )
-        DROP                (  )
-    THEN                    (  )
 ;
 
 
@@ -455,17 +469,9 @@ t_msg_menu menu_clear
     THEN                    ( n )
     DUP                     ( n n )
     0< NOT IF               ( n )   \ only display valid message
-        DUP                     ( n n )
-        DUP t_msg_q_buffer      ( n n c-addr )
-        10 3 DO                 ( n n c-addr )    \ clear display
-            1 I AT-XY           ( n n c-addr )
-            ."                         "
-        LOOP                    ( n n c-addr )
-        1 3 AT-XY               ( n n c-addr )
-        SWAP t_msg_q_len C@     ( n c-addr l )
-        TYPE                    ( n )
+        t_msg_disp_txt          ( n )   \ display the message
         15 1 AT-XY              ( n )
-        DUP                     ( n )
+        DUP                     ( n n )
         t_msg_q_tstamp @        ( n tstamp )
         clock_stst              ( n )    \ emit a timestamp
         DUP                     ( n n )  \ set the next/prev links
@@ -475,6 +481,10 @@ t_msg_menu menu_clear
         0< NOT t_msg_sprev      (  )
     ELSE                    ( n )
         DROP                (  )
+        10 3 DO                 (  )    \ clear display
+            1 I AT-XY           (  )
+            ."                         "
+        LOOP                    (  )
         FALSE t_msg_sprev   (  )    \ disable prev/next
         FALSE t_msg_snext   (  )
     THEN                    (  )
