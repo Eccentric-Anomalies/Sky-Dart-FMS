@@ -127,6 +127,60 @@ t_msg_init_store            (  )
 ;
 
 \ Display lines from given start line (t_msg_start_line)
+\ Input parameters (variables)
+\ t_msg_start_line      0-based first line to display
+\ buffer start address  ( on stack ? )
+\ Working variables
+\ t_msg_eol_ofs         offset in buffer to character following eol
+\ t_msg_nl_f            newline flag true if new line, false if continuation
+\ t_msg_curr_line       line number being parsed
+\ t_msg_buff_ofs        offset into buffer
+\ t_msg_line_ofs        offset of start of current line
+\
+\ initialize
+\ t_msg_eol_ofs = t_msg_buff_ofs = t_msg_line_ofs = buffer start address
+\ t_msg_nl_f = TRUE
+\ t_msg_curr_line = 0
+\ 
+\ t_msg_buff_ofs += 1
+\ 
+\ Check past end of screen
+\ IF t_msg_buff_ofs - t_msg_line_ofs > FMS_COLUMNS
+\   length = t_msg_eol_ofs - t_msg_line_ofs
+\   t_msg_buff_ofs = t_msg_eol_ofs
+\   t_msg_nl_f = FALSE
+\   PRINT (t_msg_line_ofs, length) -- prints only if line >= t_msg_start_line
+\   t_msg_curr_line += 1
+\   t_msg_line_ofs = t_msg_buff_ofs
+\   t_msg_eol_ofs = t_msg_buff_ofs
+\   return TRUE
+\ ELSE
+\   return FALSE
+\
+\ Check newline character
+\ IF t_msg_buff_ofs C@ == EOL OR t_msg_buff_ofs - buffer start > message length
+\   length = t_msg_buff_ofs - t_msg_line_ofs
+\   t_msg_buff_ofs += 1
+\   t_msg_nl_f = TRUE
+\   PRINT (t_msg_line_ofs, length) -- prints only if line >= t_msg_start_line
+\   t_msg_curr_line += 1
+\   t_msg_line_ofs = t_msg_buff_ofs
+\   t_msg_eol_ofs = t_msg_buff_ofs
+\   return TRUE
+\ ELSE
+\   return FALSE
+\
+\ Process next character in line
+\ IF t_msg_buff_ofs C@ == SP
+\   t_msg_eol_ofs = t_msg_buff_ofs
+\   IF t_msg_nl_f == FALSE
+\       t_msg_line_ofs = t_msg_buff_ofs
+\       t_msg_nl_f = TRUE
+\
+\ Run the preceding methods inside a loop that checks for line number > 7
+\ and t_msg_buff_ofs past the end of the message length 
+\ FIXME working here!
+
 : t_msg_disp_txt            ( -- )
     \ FIXME working here
 ;
