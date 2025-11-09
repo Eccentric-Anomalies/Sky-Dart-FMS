@@ -105,91 +105,140 @@ t_msg_init_store            (  )
 
 \ Message display utilities
 
-\ Count lines in the current block
-: t_msg_count_lines         ( -- )
-    0 t_msg_line_qty !      (  )
-    t_msg_curr_block @      ( n )
-    0 SWAP                  ( n )   \ initialize line count
-    DUP                     ( n n )
-    t_msg_q_buffer          ( n acstart )
-    DUP                     ( n acstart acstart )
-    ROT                     ( acstart acstart n )
-    t_msg_q_len             ( acstart acstart aclen )
-    C@ +                    ( acstart acend )
-    SWAP                    ( acend acstart )
-    BEGIN                   ( acend acstart )
-        2DUP                ( acend acstart acend acstart )
-        <>                  ( acend acstart f )
-    WHILE                   ( acend acstart )
-        DUP C@              ( acend acstart char )
-    REPEAT                  ( acend acstart )
-    \ FIXME working here
+\ Local variables for use with message printing
+VARIABLE t_msg_eol_addr     \ address of character following eol
+VARIABLE t_msg_nl_f         \ newline flag TRUE new line, FALSE continuation
+VARIABLE t_msg_curr_line    \ line number being parsed
+VARIABLE t_msg_buff_addr    \ addr in buffer
+VARIABLE t_msg_line_addr    \ addr of start of current line
+
+\ Display a message line if line >= t_msg_start_line
+: t_msg_println         ( caddr n -- )
+    t_msg_start_line @      ( caddr n sl )
+    t_msg_curr_line @       ( caddr n sl cl )
+    -                       ( caddr n l )
+    0< NOT IF               ( caddr n )
+        TYPE                (  )
+    ELSE                    ( caddr n )
+        2DROP               (  )
+    THEN                    (  )
 ;
 
-\ Display lines from given start line (t_msg_start_line)
-\ Input parameters (variables)
-\ t_msg_start_line      0-based first line to display
-\ buffer start address  ( on stack ? )
-\ Working variables
-\ t_msg_eol_ofs         offset in buffer to character following eol
-\ t_msg_nl_f            newline flag true if new line, false if continuation
-\ t_msg_curr_line       line number being parsed
-\ t_msg_buff_ofs        offset into buffer
-\ t_msg_line_ofs        offset of start of current line
-\
-\ initialize
-\ t_msg_eol_ofs = t_msg_buff_ofs = t_msg_line_ofs = buffer start address
-\ t_msg_nl_f = TRUE
-\ t_msg_curr_line = 0
-\ 
-\ t_msg_buff_ofs += 1
-\ 
-\ Check past end of screen
-\ IF t_msg_buff_ofs - t_msg_line_ofs > FMS_COLUMNS
-\   length = t_msg_eol_ofs - t_msg_line_ofs
-\   t_msg_buff_ofs = t_msg_eol_ofs
-\   t_msg_nl_f = FALSE
-\   PRINT (t_msg_line_ofs, length) -- prints only if line >= t_msg_start_line
-\   t_msg_curr_line += 1
-\   t_msg_line_ofs = t_msg_buff_ofs
-\   t_msg_eol_ofs = t_msg_buff_ofs
-\   return TRUE
-\ ELSE
-\   return FALSE
-\
-\ Check newline character
-\ IF t_msg_buff_ofs C@ == EOL OR t_msg_buff_ofs - buffer start > message length
-\   length = t_msg_buff_ofs - t_msg_line_ofs
-\   t_msg_buff_ofs += 1
-\   t_msg_nl_f = TRUE
-\   PRINT (t_msg_line_ofs, length) -- prints only if line >= t_msg_start_line
-\   t_msg_curr_line += 1
-\   t_msg_line_ofs = t_msg_buff_ofs
-\   t_msg_eol_ofs = t_msg_buff_ofs
-\   return TRUE
-\ ELSE
-\   return FALSE
-\
-\ Process next character in line
-\ IF t_msg_buff_ofs C@ == SP
-\   t_msg_eol_ofs = t_msg_buff_ofs
-\   IF t_msg_nl_f == FALSE
-\       t_msg_line_ofs = t_msg_buff_ofs
-\       t_msg_nl_f = TRUE
+
+\ Check line past screen edge -- TRUE printed, FALSE otherwise
+: t_msg_ck_screen       ( -- f )
+    t_msg_buff_addr @   ( baddr )
+    t_msg_line_addr @   ( baddr laddr )
+    -                   ( l )
+    FMS_COLUMNS         ( l w )
+    -                   ( n )
+    0> IF               (  )    \ past screen edge - print
+        t_msg_eol_addr @    ( eaddr )
+        DUP                 ( eaddr eaddr laddr )
+        t_msg_line_addr @   ( eaddr eaddr laddr )
+        -                   ( eaddr l)
+        SWAP                ( l eaddr )
+        t_msg_buff_addr !   ( l )       \ reposition buffer start
+        FALSE t_msg_nl_f !  ( l )       \ not a newline
+        t_msg_line_addr @   ( l laddr )
+        SWAP t_msg_println  (  )        \ print what we have
+        1 t_msg_curr_line +!            \ next screen line
+        t_msg_buff_addr @   ( baddr )   
+        DUP                 ( baddr baddr )
+        t_msg_line_addr !   ( baddr )   \ next line addr set
+        t_msg_eol_addr !    (  )        \ next eol addr set
+        TRUE                ( f )       \ past end of screen - printed
+    ELSE                (  )            \ not past screen edge
+        FALSE               ( f )       \ not past end of screen
+    THEN                ( f )
+;
+
+
+\ Check for newline character in the stream - TRUE printed, FALSE otherwise
+\ acstart is the address of the message start
+\ l is the message length
+: t_msg_ck_cr           ( l acstart -- f )
+    t_msg_buff_addr @   ( l acstart baddr )
+    SWAP                ( l baddr acstart )
+    -                   ( l offs )
+    <                   ( f )               \ past end of message
+    t_msg_buff_addr @   ( f baddr )
+    C@                  ( f c )
+    EOL =               ( f f )
+    OR IF               (  )   \ EOL char or past end of message
+        t_msg_buff_addr @       ( baddr )
+        DUP                     ( baddr baddr )
+        t_msg_line_addr @       ( baddr baddr laddr )
+        -                       ( baddr l )
+        t_msg_println           (  )        \ print what we have
+        1 t_msg_buff_addr +!    (  )        \ move buff_addr up
+        TRUE t_msg_nl_f !       (  )        \ is a newline
+        1 t_msg_curr_line +!    (  )        \ next screen line
+        t_msg_buff_addr @       ( baddr )
+        duplicate               ( baddr baddr )
+        t_msg_line_addr !       ( baddr )       \ move the line addr
+        t_msg_eol_addr !        (  )            \ move the eol addr   
+        TRUE                ( f )
+    ELSE                (  )
+        FALSE               ( f )
+    THEN                ( f )
+;
+
+\ Look for SP in the current line
+: t_msg_ck_sp           ( -- )
+    t_msg_buff_addr @ C@    ( c )
+    SP = IF                 (  )
+        t_msg_buff_addr @   ( baddr )
+        t_msg_eol_addr !    (  )        \ move the eol addr
+        t_msg_nl_f @        ( f )       \ are we wrapped from previous line
+        NOT IF              (  )
+            t_msg_buff_addr @   ( baddr )
+            t_msg_line_addr !   (  )    \ start of next line
+            TRUE t_msg_nl_f !   (  )    \ reset to not wrapped
+        THEN
+    THEN                    (  )
+;
+
 \
 \ Run the preceding methods inside a loop that checks for line number > 7
-\ and t_msg_buff_ofs past the end of the message length 
+\ and t_msg_buff_addr past the end of the message length 
 \ FIXME working here!
 
-: t_msg_disp_txt            ( -- )
-    \ FIXME working here
+\ Initialize variables for message display update
+: t_msg_update_msg_vars     ( acstart -- )
+    DUP t_msg_eol_addr !    ( acstart )
+    DUP t_msg_buff_addr !   ( acstart )
+    t_msg_line_addr !        (  )
+    TRUE t_msg_nl_f !
+    0 t_msg_curr_line !
+;
+
+\ Display the message text from the current first t_msg_start_line
+\ l parameter is the length of the message text
+\ acstart parameter is the address of the message character buffer
+: t_msg_disp_txt            ( l acstart -- )
+    DUP                     ( l acstart acstart )
+    t_msg_update_msg_vars   ( l acstart )
+    BEGIN                   ( l acstart )
+        t_msg_ck_screen         ( l acstart f )     \ off the rh side?
+        NOT IF                  ( l acstart )
+            2DUP                ( l acstart l acstart )
+            t_msg_ck_cr         ( l acstart f )
+            NOT IF              ( l acstart )
+                t_msg_ck_sp     ( l acstart )
+            THEN
+        THEN                    ( l acstart )
+        1 t_msg_buff_addr +!    ( l acstart )   \ advance buffer
+        t_msg_curr_line @       ( l acstart lno )
+        7 =                     ( l acstart f )
+    UNTIL                   ( l acstart )
+    2DROP                   (  )
 ;
 
 \ Initialize variables for message display
 : t_msg_init_msg_vars       ( -- )
     0 t_msg_start_line !    (  )
 ;
-
 
 \ Queue utilities
 
@@ -523,6 +572,10 @@ t_msg_menu menu_clear
     THEN                    ( n )
     DUP                     ( n n )
     0< NOT IF               ( n )   \ only display valid message
+        DUP DUP                 ( n n n )
+        t_msg_q_len             ( n n l )
+        SWAP                    ( n l n )
+        t_msg_q_buffer          ( n l acstart )
         t_msg_disp_txt          ( n )   \ display the message
         15 1 AT-XY              ( n )
         DUP                     ( n n )
