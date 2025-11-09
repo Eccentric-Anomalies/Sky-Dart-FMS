@@ -82,7 +82,7 @@ HEX
     0000FF00 CONSTANT MASK_MSG_LEN
     00000001 CONSTANT OFS_MSG_LEN   \ one byte offset to message length
     0D CONSTANT EOL                 \ forced end of line
-    20 CONSTANT SP                  \ whitespace
+    020 CONSTANT SP                  \ whitespace
 
 \ == INPUTS ===
 \

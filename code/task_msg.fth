@@ -36,8 +36,6 @@ VARIABLE t_msg_curr_block       \ index of block being viewed
 7 CONSTANT T_MSG_BUFF_ROW_QTY
 \ message display variables
 VARIABLE t_msg_start_line   \ display starting at line in curr message
-VARIABLE t_msg_line_qty     \ number of lines in current message
-VARIABLE t_msg_col_cnt      \ keep track of columns
 
 \ Initialize variables as needed
 FALSE t_msg_active !
