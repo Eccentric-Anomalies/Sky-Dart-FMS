@@ -116,6 +116,10 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
     t_msg_curr_line @       ( caddr n sl cl )
     -                       ( caddr n l )
     0< NOT IF               ( caddr n )
+        1                   ( caddr n 1 )
+        t_msg_curr_line @   ( caddr n 1 line )
+        3 +                 ( caddr n 1 scrline )
+        AT-XY               ( caddr n )
         TYPE                (  )
     ELSE                    ( caddr n )
         2DROP               (  )
@@ -139,7 +143,8 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
         t_msg_buff_addr !   ( l )       \ reposition buffer start
         FALSE t_msg_nl_f !  ( l )       \ not a newline
         t_msg_line_addr @   ( l laddr )
-        SWAP t_msg_println  (  )        \ print what we have
+        SWAP                ( laddr l )
+        t_msg_println       (  )        \ print what we have
         1 t_msg_curr_line +!            \ next screen line
         t_msg_buff_addr @   ( baddr )   
         DUP                 ( baddr baddr )
@@ -159,7 +164,7 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
     t_msg_buff_addr @   ( l acstart baddr )
     SWAP                ( l baddr acstart )
     -                   ( l offs )
-    <                   ( f )               \ past end of message
+    > NOT               ( f )               \ past end of message
     t_msg_buff_addr @   ( f baddr )
     C@                  ( f c )
     EOL =               ( f f )
@@ -168,12 +173,13 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
         DUP                     ( baddr baddr )
         t_msg_line_addr @       ( baddr baddr laddr )
         -                       ( baddr l )
+        1 14 AT-XY DUP .  ."  WHAT" \ FIXME
         t_msg_println           (  )        \ print what we have
         1 t_msg_buff_addr +!    (  )        \ move buff_addr up
         TRUE t_msg_nl_f !       (  )        \ is a newline
         1 t_msg_curr_line +!    (  )        \ next screen line
         t_msg_buff_addr @       ( baddr )
-        duplicate               ( baddr baddr )
+        DUP                     ( baddr baddr )
         t_msg_line_addr !       ( baddr )       \ move the line addr
         t_msg_eol_addr !        (  )            \ move the eol addr   
         TRUE                ( f )
@@ -567,7 +573,7 @@ t_msg_menu menu_clear
     DUP                     ( n n )
     0< NOT IF               ( n )   \ only display valid message
         DUP DUP                 ( n n n )
-        t_msg_q_len             ( n n l )
+        t_msg_q_len C@          ( n n l )
         SWAP                    ( n l n )
         t_msg_q_buffer          ( n l acstart )
         t_msg_disp_txt          ( n )   \ display the message
