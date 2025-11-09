@@ -199,16 +199,12 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
     THEN                    (  )
 ;
 
-\
-\ Run the preceding methods inside a loop that checks for line number > 7
-\ and t_msg_buff_addr past the end of the message length 
-\ FIXME working here!
 
 \ Initialize variables for message display update
 : t_msg_update_msg_vars     ( acstart -- )
     DUP t_msg_eol_addr !    ( acstart )
     DUP t_msg_buff_addr !   ( acstart )
-    t_msg_line_addr !        (  )
+    t_msg_line_addr !       (  )
     TRUE t_msg_nl_f !
     0 t_msg_curr_line !
 ;

@@ -31,7 +31,7 @@ fms_num_buffer fms_whole !
     0 fms_up_xt !
     0 fms_dn_xt !
     0 fms_sp_xt !
-    ;
+;
 
 \ and reset them now...
 fms_reset_key_xts
