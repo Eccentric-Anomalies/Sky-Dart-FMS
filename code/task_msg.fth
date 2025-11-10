@@ -110,6 +110,15 @@ VARIABLE t_msg_curr_line    \ line number being parsed
 VARIABLE t_msg_buff_addr    \ addr in buffer
 VARIABLE t_msg_line_addr    \ addr of start of current line
 
+\ Erase the message window
+: t_msg_clr_msg         ( -- )
+    10 3 DO                 (  )    \ clear display
+        FMS_COLUMNS             ( c )
+        1 I erase_display_line  (  )
+    LOOP                    (  )
+;
+
+
 \ Display a message line if line >= t_msg_start_line
 : t_msg_println         ( caddr n -- )
     t_msg_start_line @      ( caddr n sl )
@@ -118,6 +127,8 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
     0< NOT IF               ( caddr n )
         1                   ( caddr n 1 )
         t_msg_curr_line @   ( caddr n 1 line )
+        t_msg_start_line @  ( caddr n 1 line startl )
+        -                   ( caddr n 1 visline ) 
         3 +                 ( caddr n 1 scrline )
         AT-XY               ( caddr n )
         TYPE                (  )
@@ -169,11 +180,10 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
     C@                  ( f c )
     EOL =               ( f f )
     OR IF               (  )   \ EOL char or past end of message
-        t_msg_buff_addr @       ( baddr )
-        DUP                     ( baddr baddr )
-        t_msg_line_addr @       ( baddr baddr laddr )
-        -                       ( baddr l )
-        1 14 AT-XY DUP .  ."  WHAT" \ FIXME
+        t_msg_line_addr @       ( laddr )
+        t_msg_buff_addr @       ( laddr baddr )
+        OVER                    ( laddr baddr laddr )
+        -                       ( laddr l )
         t_msg_println           (  )        \ print what we have
         1 t_msg_buff_addr +!    (  )        \ move buff_addr up
         TRUE t_msg_nl_f !       (  )        \ is a newline
@@ -217,6 +227,7 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
 \ l parameter is the length of the message text
 \ acstart parameter is the address of the message character buffer
 : t_msg_disp_txt            ( l acstart -- )
+    t_msg_clr_msg           ( l acstart )           \ erase display
     DUP                     ( l acstart acstart )
     t_msg_update_msg_vars   ( l acstart )
     BEGIN                   ( l acstart )
@@ -227,10 +238,16 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
             NOT IF              ( l acstart )
                 t_msg_ck_sp     ( l acstart )
             THEN
-        THEN                    ( l acstart )
-        1 t_msg_buff_addr +!    ( l acstart )   \ advance buffer
+        THEN                    ( l acstart )   \ past window or message?
         t_msg_curr_line @       ( l acstart lno )
-        7 =                     ( l acstart f )
+        t_msg_start_line @ -    ( l acstart scrline )
+        7 =                     ( l acstart f ) \ past window
+        OVER                    ( l acstart f acstart )
+        3 PICK                  ( l acstart f acstart l )
+        +                       ( l acstart f end )
+        t_msg_buff_addr @       ( l acstart f end baddr )
+        > NOT OR                ( l acstart f ) 
+        1 t_msg_buff_addr +!    ( l acstart f )   \ advance buffer
     UNTIL                   ( l acstart )
     2DROP                   (  )
 ;
@@ -458,6 +475,7 @@ DECIMAL
             t_msg_q_tstamp  ( a-tstamp )    \ get timestamp address
             clock_msec_count 2@     ( a-tstmp 2msec )
             1000 M/         ( a_tstmp sec ) \ save the message timestamp
+            12 14 AT-XY DUP . ." SEC"   \ FIXME
             SWAP !          (  )
         ELSE                (  )   \ length packet invalid
             DROP            (  )   \ remain in T_MSG_IDLE
@@ -492,6 +510,7 @@ DECIMAL
         ROT 2DROP           ( n-b )
         t_msg_count @       ( n-b rem )
         0= IF               ( n-b )    \ message complete
+            1 3 AT-XY ." IDLE" \ FIXME
             T_MSG_IDLE t_msg_state !    ( n-b )    \ state is IDLE
             t_msg_used      ( n-b q-a )
             t_msg_q_push    (  )        \ add it to the used queue
@@ -588,10 +607,7 @@ t_msg_menu menu_clear
         0< NOT t_msg_sprev      (  )
     ELSE                    ( n )
         DROP                (  )
-        10 3 DO                 (  )    \ clear display
-            1 I AT-XY           (  )
-            ."                         "
-        LOOP                    (  )
+        t_msg_clr_msg       (  )
         FALSE t_msg_sprev   (  )    \ disable prev/next
         FALSE t_msg_snext   (  )
     THEN                    (  )
@@ -638,9 +654,9 @@ DECIMAL
 \ (6) t_msg poll function
 : t_msg_poll                    ( -- )
     t_msg_update @ IF           (  )
+        FALSE t_msg_update !    (  )
         CURSOR-HIDE
         t_msg_disp              (  )
-        FALSE t_msg_update !    (  )
         t_msg_menu menu_show    (  )    \ update links
         fms_park_cursor         (  )
         CURSOR-SHOW             (  )
