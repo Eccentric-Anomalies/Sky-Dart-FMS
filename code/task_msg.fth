@@ -121,8 +121,8 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
 
 \ Display a message line if line >= t_msg_start_line
 : t_msg_println         ( caddr n -- )
-    t_msg_start_line @      ( caddr n sl )
-    t_msg_curr_line @       ( caddr n sl cl )
+    t_msg_curr_line @       ( caddr n cl )
+    t_msg_start_line @      ( caddr n cl sl )
     -                       ( caddr n l )
     0< NOT IF               ( caddr n )
         1                   ( caddr n 1 )
@@ -147,20 +147,19 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
     -                   ( n )
     0> IF               (  )    \ past screen edge - print
         t_msg_eol_addr @    ( eaddr )
-        DUP                 ( eaddr eaddr laddr )
+        DUP                 ( eaddr eaddr )
         t_msg_line_addr @   ( eaddr eaddr laddr )
         -                   ( eaddr l)
         SWAP                ( l eaddr )
+        1+                  ( l eaddr+1 )
         t_msg_buff_addr !   ( l )       \ reposition buffer start
         FALSE t_msg_nl_f !  ( l )       \ not a newline
         t_msg_line_addr @   ( l laddr )
         SWAP                ( laddr l )
         t_msg_println       (  )        \ print what we have
         1 t_msg_curr_line +!            \ next screen line
-        t_msg_buff_addr @   ( baddr )   
-        DUP                 ( baddr baddr )
-        t_msg_line_addr !   ( baddr )   \ next line addr set
-        t_msg_eol_addr !    (  )        \ next eol addr set
+        t_msg_buff_addr @   ( baddr )
+        t_msg_line_addr !   (  )        \ next line addr set
         TRUE                ( f )       \ past end of screen - printed
     ELSE                (  )            \ not past screen edge
         FALSE               ( f )       \ not past end of screen
@@ -185,7 +184,6 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
         OVER                    ( laddr baddr laddr )
         -                       ( laddr l )
         t_msg_println           (  )        \ print what we have
-        1 t_msg_buff_addr +!    (  )        \ move buff_addr up
         TRUE t_msg_nl_f !       (  )        \ is a newline
         1 t_msg_curr_line +!    (  )        \ next screen line
         t_msg_buff_addr @       ( baddr )
@@ -475,7 +473,6 @@ DECIMAL
             t_msg_q_tstamp  ( a-tstamp )    \ get timestamp address
             clock_msec_count 2@     ( a-tstmp 2msec )
             1000 M/         ( a_tstmp sec ) \ save the message timestamp
-            12 14 AT-XY DUP . ." SEC"   \ FIXME
             SWAP !          (  )
         ELSE                (  )   \ length packet invalid
             DROP            (  )   \ remain in T_MSG_IDLE
@@ -510,7 +507,6 @@ DECIMAL
         ROT 2DROP           ( n-b )
         t_msg_count @       ( n-b rem )
         0= IF               ( n-b )    \ message complete
-            1 3 AT-XY ." IDLE" \ FIXME
             T_MSG_IDLE t_msg_state !    ( n-b )    \ state is IDLE
             t_msg_used      ( n-b q-a )
             t_msg_q_push    (  )        \ add it to the used queue
