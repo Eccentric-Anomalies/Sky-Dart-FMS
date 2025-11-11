@@ -106,6 +106,7 @@ t_msg_init_store            (  )
 \ Local variables for use with message printing
 VARIABLE t_msg_eol_addr     \ address of character following eol
 VARIABLE t_msg_nl_f         \ newline flag TRUE new line, FALSE continuation
+VARIABLE t_msg_past_end     \ message display goes below screen
 VARIABLE t_msg_curr_line    \ line number being parsed
 VARIABLE t_msg_buff_addr    \ addr in buffer
 VARIABLE t_msg_line_addr    \ addr of start of current line
@@ -151,7 +152,6 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
         t_msg_line_addr @   ( eaddr eaddr laddr )
         -                   ( eaddr l)
         SWAP                ( l eaddr )
-        1+                  ( l eaddr+1 )
         t_msg_buff_addr !   ( l )       \ reposition buffer start
         FALSE t_msg_nl_f !  ( l )       \ not a newline
         t_msg_line_addr @   ( l laddr )
@@ -199,9 +199,10 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
 \ Look for SP in the current line
 : t_msg_ck_sp           ( -- )
     t_msg_buff_addr @ C@    ( c )
-    SP = IF                 (  )
+    SP = IF                 (  )        \ space character
         t_msg_buff_addr @   ( baddr )
         t_msg_eol_addr !    (  )        \ move the eol addr
+    ELSE                    (  )        \ not space char
         t_msg_nl_f @        ( f )       \ are we wrapped from previous line
         NOT IF              (  )
             t_msg_buff_addr @   ( baddr )
@@ -218,6 +219,7 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
     DUP t_msg_buff_addr !   ( acstart )
     t_msg_line_addr !       (  )
     TRUE t_msg_nl_f !
+    FALSE t_msg_past_end !
     0 t_msg_curr_line !
 ;
 
@@ -240,6 +242,7 @@ VARIABLE t_msg_line_addr    \ addr of start of current line
         t_msg_curr_line @       ( l acstart lno )
         t_msg_start_line @ -    ( l acstart scrline )
         7 =                     ( l acstart f ) \ past window
+        DUP t_msg_past_end !    ( l acstart f ) \ indicate if disp past window
         OVER                    ( l acstart f acstart )
         3 PICK                  ( l acstart f acstart l )
         +                       ( l acstart f end )
@@ -544,11 +547,18 @@ t_msg_menu menu_clear
 ;
 
 : t_msg_up              ( -- )
-    22 14 AT-XY ." UP"     \ FIXME
+    t_msg_start_line @  ( sline )
+    0> IF               (  )
+        -1 t_msg_start_line +!
+        TRUE t_msg_update ! (  )    \ update display on next poll
+    THEN                (  )
 ;  
 
 : t_msg_dn              ( -- )
-    22 14 AT-XY ." DN"     \ FIXME
+    t_msg_past_end @ IF (  )
+        1 t_msg_start_line +!
+        TRUE t_msg_update ! (  )    \ update display on next poll
+    THEN
 ;
 
 \ (2) end handlers
