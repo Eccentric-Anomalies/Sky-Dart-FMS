@@ -467,6 +467,7 @@ DECIMAL
         AND                 ( l f )
         IF                  ( l )   \ valid 
             t_msg_count !   (  )    \ set the running count
+            1 PORT_MESSAGE_LIGHT OUT    (  )    \ turn on the msg light
             T_MSG_DATA t_msg_state ! (  )   \ set state to DATA
             t_msg_alloc     ( n )   \ get a free message block
             DUP t_msg_q_len ( n a-len )
@@ -580,6 +581,7 @@ t_msg_menu menu_clear
         ['] t_msg_next S"   NEXT-" 
     ELSE
         0 S" NO NEXT" 
+        0 PORT_MESSAGE_LIGHT OUT    \ msg light off
     THEN    
     0 0 t_msg_menu 1 4 menu_add_option
 ;
