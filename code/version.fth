@@ -8,5 +8,5 @@
 ;
 
 : version_number
-    9 2 AT-XY ." v01.01.03"
+    9 2 AT-XY ." v01.01.04"
 ;
