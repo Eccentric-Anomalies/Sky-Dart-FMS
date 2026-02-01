@@ -15,7 +15,7 @@
 \  
 \  <BATTERY     PROPELLENT>
 \
-\  <RETURN           MINED>
+\  <RETURN             ORE>
 \
 
 
@@ -46,14 +46,12 @@ VARIABLE t_padsvc_elec  \ kwh times 10
 VARIABLE t_padsvc_o2    \ liters times 10
 VARIABLE t_padsvc_lioh  \ kg times 10
 VARIABLE t_padsvc_repair    \ 10 or 0
-VARIABLE t_padsvc_spice \ kg / 100
 \ resource transfer state 1 = transferring 0 = not
 VARIABLE t_padsvc_food_state
 VARIABLE t_padsvc_water_state
 VARIABLE t_padsvc_elec_state
 VARIABLE t_padsvc_o2_state
 VARIABLE t_padsvc_lioh_state
-VARIABLE t_padsvc_spice_state
 
 VARIABLE t_padsvc_3buff
 
@@ -106,15 +104,14 @@ HEX
     t_padsvc_o2 !
     t_padsvc_lioh !
     t_padsvc_prop !
+    t_padsvc_ore !
     t_padsvc_repair !
-    t_padsvc_spice !
-    0 DUP 2DUP 2DUP
+    0 DUP 2DUP DUP
     t_padsvc_food_state !
     t_padsvc_water_state !
     t_padsvc_elec_state !
     t_padsvc_o2_state !
     t_padsvc_lioh_state !
-    t_padsvc_spice_state !
 ;
 
 \ Erase it now
@@ -178,6 +175,7 @@ DECIMAL
         10 /                ( n/10 )
         0 <# # [CHAR] . HOLD # # # # #> TYPE
     THEN                    (  )
+
     ."  KM"                  (  )
 ;
 
@@ -189,6 +187,7 @@ DECIMAL
 
 
 \ Display all of the acquired data for the pad (if menu active)
+
 \
 DECIMAL
 : t_padsvc_update           ( -- )
@@ -233,7 +232,6 @@ DECIMAL
 ;
 
 
-
 \ Display a menu option for propellent if available
 : t_padsvc_propupd              ( -- )
     t_padsvc_prop @             ( v )
@@ -245,11 +243,23 @@ DECIMAL
     0 0 t_padsvc_menu_t @ 1 5 menu_add_option
 ;
 
+\ Display a menu option for ore if available
+: t_padsvc_oreupd              ( -- )
+    t_padsvc_ore @             ( v )
+    0 1- <> IF                  (  )
+        ['] t_padsvc_prophandler S" ORE>" 
+    ELSE
+        0 S"     "
+    THEN
+    0 0 t_padsvc_menu_t @ 1 6 menu_add_option
+;
+
 \ Display the menu options for transferring resources
 : t_padsvc_rsrcupd              ( -- )
     t_padsvc_active @ IF
         CURSOR-HIDE
         t_padsvc_propupd
+        t_padsvc_oreupd
         t_padsvc_repairupd
         t_padsvc_menu_t @ menu_show
         fms_park_cursor
@@ -282,10 +292,10 @@ HEX
             T_PADSVC_REPAIR_F   ( f )
             t_padsvc_repair !   (  )
         THEN
-    ELSE DUP PADL_SPICE = IF    ( v r )
-        DROP t_padsvc_spice !   (  )
+    ELSE DUP PADL_ORE = IF    ( v r )
+        DROP t_padsvc_ore !   (  )
     ELSE 2DROP                  (  ) \ no matches
-    THEN    \ PADL_SPICE
+    THEN    \ PADL_ORE
     THEN    \ PADL_REPAIR
     THEN    \ PADL_PROP
     THEN    \ PADL_LIOH
@@ -372,6 +382,7 @@ DECIMAL
         t_padsvc_rsrcupd
     THEN                ( gf )
     DUP t_padsvc_prop_grounded    ( gf )
+    DUP t_padsvc_ore_grounded     ( gf )
     DUP t_padsvc_gear_grounded    ( gf )
     DROP                (  )
 ;

@@ -34,6 +34,9 @@ VARIABLE t_padsvc_addr
 \ PADSVC PROP
 VARIABLE t_padsvc_prop_addr
 
+\ PADSVC ORE
+VARIABLE t_padsvc_ore_addr
+
 \ PADSVC GEAR
 VARIABLE t_padsvc_gear_addr
 

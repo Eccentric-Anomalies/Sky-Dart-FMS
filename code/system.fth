@@ -26,6 +26,7 @@ INCLUDE task_globals.fth
 \ Levels seperated by ----
 INCLUDE task_gear.fth
 INCLUDE task_padsvc_prop.fth
+INCLUDE task_padsvc_ore.fth
 INCLUDE task_padsvc_gear.fth
 \ ----
 INCLUDE task_chron.fth
