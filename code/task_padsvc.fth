@@ -74,7 +74,6 @@ PAD_TO_SHIP t_padsvc_direction !
     1 3 AT-XY   ." ALTITUDE:"
     1 4 AT-XY   horizontal_rule
     1 5 AT-XY   ." NEARBY: ID/BEARING/DIST"
-    1 8 AT-XY   horizontal_rule
 ;
 
 
@@ -207,17 +206,33 @@ DECIMAL
     THEN
 ;
 
+\ Handle ore function key
+: t_padsvc_orehandler          ( -- )
+    FALSE t_padsvc_active !
+    t_padsvc_addr @ task_padsvc_ore task_start
+;
+
 \ Handle repair function key
 : t_padsvc_rephandler          ( -- )
     FALSE t_padsvc_active !
     t_padsvc_addr @ task_padsvc_gear task_start
 ;
 
-
 \ Handle propellent function key
 : t_padsvc_prophandler          ( -- )
     FALSE t_padsvc_active !
     t_padsvc_addr @ task_padsvc_prop task_start
+;
+
+\ Display a menu option for ore if available
+: t_padsvc_oreupd              ( -- )
+    t_padsvc_ore @             ( v )
+    0 1- <> IF                  (  )
+        ['] t_padsvc_orehandler S" ORE>" 
+    ELSE
+        0 S"     "
+    THEN
+    0 0 t_padsvc_menu_t @ 1 3 menu_add_option
 ;
 
 \ Display a menu option for repair if available
@@ -241,17 +256,6 @@ DECIMAL
         0 S"            "
     THEN
     0 0 t_padsvc_menu_t @ 1 5 menu_add_option
-;
-
-\ Display a menu option for ore if available
-: t_padsvc_oreupd              ( -- )
-    t_padsvc_ore @             ( v )
-    0 1- <> IF                  (  )
-        ['] t_padsvc_prophandler S" ORE>" 
-    ELSE
-        0 S"     "
-    THEN
-    0 0 t_padsvc_menu_t @ 1 6 menu_add_option
 ;
 
 \ Display the menu options for transferring resources

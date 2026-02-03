@@ -21,7 +21,7 @@
 \ Constants
 DECIMAL
 2000 CONSTANT T_PADSVC_ORE_MAX
-1000 CONSTANT T_PADSVC_ORE_MIN
+0 CONSTANT T_PADSVC_ORE_MIN \ it is normal to deliver ALL your ore
 
 \ Variables
 VARIABLE t_padsvc_ore_max
