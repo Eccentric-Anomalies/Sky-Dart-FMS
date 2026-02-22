@@ -383,11 +383,14 @@ DECIMAL
     DUP                    ( gf gf )
     NOT IF              ( gf )
         t_padsvc_erase_state
+        t_padsvc_update
         t_padsvc_rsrcupd
     THEN                ( gf )
-    DUP t_padsvc_prop_grounded    ( gf )
-    DUP t_padsvc_ore_grounded     ( gf )
-    DUP t_padsvc_gear_grounded    ( gf )
+    t_padsvc_active @ NOT IF    \ this screen isn't active, check child screens
+        DUP t_padsvc_prop_grounded    ( gf )
+        DUP t_padsvc_ore_grounded     ( gf )
+        DUP t_padsvc_gear_grounded    ( gf )
+    THEN
     DROP                (  )
 ;
 
@@ -433,7 +436,6 @@ t_padsvc_menu_create
     t_padsvc_display_fixed_text      (  )
     t_padsvc_update                  (  )
     t_padsvc_rsrcupd                 (  )
-    \ t_padsvc_dirupd                  (  ) FIXME
     t_padsvc_send_direction          (  )
     fms_refresh_buffer_display       (  )
 ;
