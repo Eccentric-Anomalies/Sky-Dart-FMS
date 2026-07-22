@@ -191,6 +191,14 @@ VARIABLE menu_current
     fms_set_fkey_text           (  )
 ;
 
+\ Utility for flashing a single menu item text
+\
+: menu_item_text_flash          ( m-addr col row  -- )
+    BLINKV                      ( m-addr col row)
+    menu_item_text_show         (  )
+    NOMODEV                     (  )
+;
+
 \ Utility for displaying a single menu item label
 \
 : menu_item_label_show          ( m-addr col row  -- )

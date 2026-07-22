@@ -44,6 +44,7 @@ T_MSG_IDLE t_msg_state !
 -1 t_msg_buffer_block !
 -1 t_msg_curr_block !
 FALSE t_msg_update !
+FALSE t_msg_new !       \ in task_globals
 
 \ Set up storage for received messages
 DECIMAL
@@ -514,6 +515,7 @@ DECIMAL
             T_MSG_IDLE t_msg_state !    ( n-b )    \ state is IDLE
             t_msg_used      ( n-b q-a )
             t_msg_q_push    (  )        \ add it to the used queue
+            TRUE t_msg_new !    (  )    \ flash new message line
             TRUE t_msg_update ! (  )    \ refresh display
         ELSE                ( n-b )
             DROP            (  )
@@ -582,6 +584,7 @@ t_msg_menu menu_clear
     ELSE
         0 S" NO NEXT" 
         0 PORT_MESSAGE_LIGHT OUT    \ msg light off
+        FALSE t_msg_new !           \ no flashing
     THEN    
     0 0 t_msg_menu 1 4 menu_add_option
 ;
@@ -666,6 +669,9 @@ DECIMAL
         CURSOR-HIDE
         t_msg_disp              (  )
         t_msg_menu menu_show    (  )    \ update links
+        t_msg_new @ IF          (  )
+            t_msg_menu 1 4 menu_item_text_flash     \ flash next item
+        THEN                    (  )
         fms_park_cursor         (  )
         CURSOR-SHOW             (  )
     THEN                        (  )

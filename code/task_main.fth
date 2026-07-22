@@ -18,6 +18,8 @@
 \
 \
 
+\ new message flashed state
+VARIABLE t_main_flashed
 
 \ (1) Allocate and clear a menu structure: task_main_menu;
 menu_create task_main_menu
@@ -54,6 +56,15 @@ task_main_menu_create
 
 \ (6) task_main poll function
 : task_main_poll            ( -- )
+    t_msg_new @             ( f )   \ new message waiting
+    t_main_flashed @ NOT AND    ( f )   \ new message and not set flashing yet
+    IF                          (  )    \ flash new message
+        TRUE t_main_flashed !   (  )    \ note that we dont do this again
+        CURSOR-HIDE
+        task_main_menu 0 0 menu_item_text_flash (  )    \ flash messages line
+        fms_park_cursor
+        CURSOR-SHOW
+    THEN                    (  )
 ;
 
 \ (5) task_main init function
@@ -63,6 +74,7 @@ task_main_menu_create
     version_title               (  )
     version_number              (  )
     fms_refresh_buffer_display  (  )
+    FALSE t_main_flashed !      (  )    \ no message flashing by default
 ;
 
 \ (7) Create the task definition: task_main
