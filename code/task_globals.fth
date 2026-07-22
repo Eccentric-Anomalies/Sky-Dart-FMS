@@ -42,3 +42,4 @@ VARIABLE t_padsvc_gear_addr
 
 \ MSG
 VARIABLE t_msg_addr
+VARIABLE t_msg_new  \ TRUE if new, unread message waiting
