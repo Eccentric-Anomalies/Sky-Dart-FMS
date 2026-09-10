@@ -30,7 +30,7 @@ VARIABLE t_padsvc_direction
 
 \ pad info state
 VARIABLE t_padsvc_name
-VARIABLE t_padsvc_alt   \ km times 10
+VARIABLE t_padsvc_alt   \ m
 VARIABLE t_padsvc_lat   \ degrees times 100
 VARIABLE t_padsvc_lon   \ degrees times 100
 VARIABLE t_padsvc_0nam
@@ -160,8 +160,10 @@ HEX
 
 \ Print altitude in meters 
 : t_padsvc_print_alt        ( c r n -- )
-    ROT ROT AT-XY 0         ( d )
-    <# [CHAR] M HOLD # # # # #> TYPE
+    ROT ROT AT-XY           ( n )
+    DUP ABS 0               ( n ud ) \ preamble for displaying neg. number
+    <# [CHAR] M HOLD # # # # ROT SIGN #> TYPE (  )
+    SPACE                   (  ) \ pad the ending
 ;
 
 \ Print distance (in m/10 ) in km to one or two dp
