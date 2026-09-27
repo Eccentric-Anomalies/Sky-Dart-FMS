@@ -64,20 +64,24 @@ DECIMAL
 \ Display the updated mission time
 \
 : t_chron_display_mission_time
+    CURSOR-HIDE
     6 4 AT-XY t_chron_hour_only @ 0 <# # # # # # #> TYPE 
     9 5 AT-XY t_chron_min_only @ 0 <# # # #> TYPE
     9 6 AT-XY t_chron_sec_only @ 0 <# # # #> TYPE
     fms_park_cursor
+    CURSOR-SHOW
 ;
 
 \ Display the updated timer value
 \ Original value is msec, display to 1/10 sec
 \ 
 : t_chron_display_timer         ( -- )
+    CURSOR-HIDE
     6 10 AT-XY
     t_chron_msec_timer @ 100 /  ( s*10 )
     0 <# # [CHAR] . HOLD # # # # #> TYPE
     fms_park_cursor             (  )
+    CURSOR-SHOW
 ;
 
 \ Display the mission time fixed text
